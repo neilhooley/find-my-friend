@@ -153,6 +153,27 @@ body {
 .friendpod { position: absolute; right: 0; bottom: 48px; width: clamp(88px, 22vw, 150px); display: flex; flex-direction: column; align-items: center; pointer-events: auto; cursor: pointer; z-index: 2; }
 .friendpod canvas { width: 100%; aspect-ratio: 1; display: block; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #ffffff, #cdeeff 70%); border: 4px solid var(--ink); box-sizing: border-box; }
 .stand { margin-top: -6px; width: 110%; text-align: center; background: linear-gradient(#e6b77a, #c98d4f); border: 3px solid var(--ink); border-radius: 10px; font: 800 14px/1 var(--display); padding: 5px 4px 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; box-shadow: 0 3px 0 var(--ink); }
+/* Mini game: The Friendly Diner (food slicing) */
+.area.cafe { background: #ffe9c7; margin-top: 4px; }
+.overlay.cafe-ov { background: #ffd9d9; padding: 0; }
+#sliceCv { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+.slicehud { position: absolute; left: 0; right: 0; top: 0; display: flex; gap: 6px; align-items: center; flex-wrap: wrap;
+  padding: calc(env(safe-area-inset-top, 0px) + 10px) max(16px, env(safe-area-inset-right, 0px)) 0 max(16px, env(safe-area-inset-left, 0px)); pointer-events: none; }
+.slicehud .chip { font-size: 17px; }
+.slicehud #cafeQuit { margin-left: auto; pointer-events: auto; font-size: 15px; padding: 7px 12px 5px; }
+.cafecard { position: relative; margin: auto; max-width: 460px; width: calc(100% - 32px); }
+.mealbtns { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.meal { display: grid; justify-items: center; gap: 4px; font: 800 18px/1 var(--display); padding: 14px 6px 10px; border: 4px solid var(--ink); border-radius: 18px; background: #fff; color: var(--ink); box-shadow: 0 5px 0 var(--ink); cursor: pointer; }
+.meal .em { font-size: 40px; line-height: 1.1; }
+.meal:active, .fooditem:active { transform: translateY(3px); box-shadow: 0 2px 0 var(--ink); }
+.foodpick { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.fooditem { display: grid; justify-items: center; gap: 4px; font: 800 13px/1.1 var(--display); padding: 6px 4px 8px; border: 3px solid var(--ink); border-radius: 16px; background: #fff7e0; color: var(--ink); box-shadow: 0 4px 0 var(--ink); cursor: pointer; }
+.fooditem canvas { width: 64px; height: 64px; }
+.fooditem.taken { opacity: 0.35; pointer-events: none; }
+.starkey { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; font: 800 13px/1 var(--body); }
+.starkey span { background: #fff7e0; border: 2px solid var(--ink); border-radius: 999px; padding: 6px 9px; }
+.bigstars { font-size: 46px; letter-spacing: 4px; }
+.bigstars .off { filter: grayscale(1); opacity: 0.3; }
 .playrow { grid-column: 1 / -1; display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; }
 .playrow .story { background: rgba(255,250,240,0.85); border-radius: 14px; padding: 6px 12px; max-width: 560px; }
 .btn.play { font-size: clamp(34px, 9vw, 48px); padding: 14px 20px 10px; width: min(420px, 100%); }
@@ -270,6 +291,7 @@ label.namefield input:focus-visible { box-shadow: 0 0 0 4px var(--sun); }
         <button class="area" id="areaDrive" role="radio" data-area="drive"><span class="em" aria-hidden="true">🚗</span><span class="nm">Driving</span><span class="lock" aria-hidden="true">🔒</span></button>
         <button class="area" id="areaParty" role="radio" data-area="party"><span class="em" aria-hidden="true">🎉</span><span class="nm">Party</span><span class="lock" aria-hidden="true">🔒</span></button>
         <div class="locknote" id="lockNote" aria-live="polite"></div>
+        <button class="area cafe" id="cafeBtn"><span class="em" aria-hidden="true">🍳</span><span class="nm">Mini game</span></button>
         
       </nav>
       <div class="stage">
@@ -358,6 +380,41 @@ label.namefield input:focus-visible { box-shadow: 0 0 0 4px var(--sun); }
         <input id="friendName" maxlength="14" autocomplete="off" placeholder="Your friend's name">
       </label>
       <div id="opts"></div>
+    </div>
+  </div>
+
+  <div class="overlay cafe-ov" id="cafeScreen" hidden>
+    <canvas id="sliceCv" aria-label="Diner slicing game"></canvas>
+    <div class="slicehud" id="sliceHud" hidden>
+      <span class="chip" id="cafeTime">⏱ 60</span>
+      <span class="chip" id="cafeFed">😋 0</span>
+      <span class="hearts" id="cafeHearts"></span>
+      <button class="btn small quiet" id="cafeQuit">Quit</button>
+    </div>
+    <div class="card cafecard" id="cafePick">
+      <div class="eyebrow">Mini game</div>
+      <h2>The Friendly Diner</h2>
+      <p class="story" id="pickText">You and your friend are at your favourite diner! First, pick a meal.</p>
+      <div class="mealbtns" id="mealBtns">
+        <button class="meal" data-meal="breakfast"><span class="em" aria-hidden="true">🥞</span>Breakfast</button>
+        <button class="meal" data-meal="lunch"><span class="em" aria-hidden="true">🍕</span>Lunch</button>
+        <button class="meal" data-meal="dinner"><span class="em" aria-hidden="true">🍔</span>Dinner</button>
+      </div>
+      <div class="foodpick" id="foodPick" hidden></div>
+      <div class="starkey" id="starKey"><span>Swipe to slice!</span><span>Slice your food to eat it</span><span>Slice your friend's food to feed them</span><span>Don't slice the other foods!</span></div>
+      <div class="btnrow"><button class="btn quiet" id="pickBack">Back</button></div>
+    </div>
+    <div class="card cafecard" id="cafeEnd" hidden>
+      <div class="eyebrow" id="cafeEndEyebrow">Time's up!</div>
+      <h2 id="cafeEndTitle">Yum!</h2>
+      <div class="bigstars" id="cafeStars"></div>
+      <p class="story" id="cafeEndText"></p>
+      <div class="best">You have <span class="walletN">0</span> coins</div>
+      <div class="btnrow">
+        <button class="btn alt" id="bonusBtn" hidden>Bonus round!</button>
+        <button class="btn" id="cafeAgain">Play again</button>
+        <button class="btn quiet" id="cafeHome">Menu</button>
+      </div>
     </div>
   </div>
 
@@ -841,7 +898,7 @@ const ui = {
   hud: $('hud'), start: $('startScreen'), over: $('overScreen'), win: $('winScreen'), pause: $('pauseScreen'),
   stars: $('starCount'), dist: $('distCount'), hearts: $('hearts'), fill: $('fill'), dot: $('dot'), flag: $('flag'),
   track: $('track'), endless: $('endlessTag'), name: $('friendName'),
-  timer: $('timerChip'), time: $('timeCount'), maker: $('makerScreen'), how: $('howScreen'),
+  timer: $('timerChip'), time: $('timeCount'), maker: $('makerScreen'), how: $('howScreen'), cafe: $('cafeScreen'),
 };
 const HEART = (full) => `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-8-5.2-8-11.2C4 6.6 6.3 4.5 8.8 4.5c1.5 0 2.6.7 3.2 1.8.6-1.1 1.7-1.8 3.2-1.8 2.5 0 4.8 2.1 4.8 5.3C20 15.8 12 21 12 21z" fill="${full ? '#ff4f6d' : '#fffaf0'}" stroke="#2d2440" stroke-width="2.2" stroke-linejoin="round"/></svg>`;
 const SPK_ON = '<svg viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4z" fill="#2d2440"/><path d="M16 8.5c1.6 1.8 1.6 5.2 0 7M18.5 6c3 3.2 3 8.8 0 12" stroke="#2d2440" stroke-width="2" fill="none" stroke-linecap="round"/></svg>';
@@ -875,7 +932,7 @@ function updateHud() {
 }
 
 function showOnly(el) {
-  for (const o of [ui.start, ui.over, ui.win, ui.pause, ui.maker, ui.how]) o.hidden = o !== el;
+  for (const o of [ui.start, ui.over, ui.win, ui.pause, ui.maker, ui.how, ui.cafe]) o.hidden = o !== el;
 }
 function buildRide() {
   const kinds = $('rideKinds'), cols = $('rideCols');
@@ -911,7 +968,7 @@ function lockNote(t, shake) {
   if (shake) { n.classList.remove('shake'); void n.offsetWidth; n.classList.add('shake'); }
 }
 function refreshLock() {
-  for (const b of document.querySelectorAll('.area')) {
+  for (const b of document.querySelectorAll('.area[data-area]')) {
     const id = b.dataset.area, open = isOpen(id);
     b.classList.toggle('locked', !open);
     const lk = b.querySelector('.lock'); if (lk) lk.textContent = open ? '' : '🔒' + PLACE_PRICE[id];
@@ -925,7 +982,7 @@ function setLevel(id) {
   if (!LEVELS[id] || !isOpen(id)) id = 'park';
   level = LEVELS[id];
   store('fmf_area', level.id);
-  for (const b of document.querySelectorAll('.area')) { const on = b.dataset.area === level.id; b.classList.toggle('on', on); b.setAttribute('aria-checked', on); }
+  for (const b of document.querySelectorAll('.area[data-area]')) { const on = b.dataset.area === level.id; b.classList.toggle('on', on); b.setAttribute('aria-checked', on); }
   pendingPlace = null; refreshLock(); setFriendTag();
   $('storyLine').textContent = level.story;
   $('rideBox').hidden = level.id !== 'drive';
@@ -937,7 +994,7 @@ function setLevel(id) {
   $('bestLine').textContent = bestLine();
   if (S.mode === 'start') { S = newState('start'); fillScenery(); }
 }
-for (const b of document.querySelectorAll('.area')) b.onclick = () => {
+for (const b of document.querySelectorAll('.area[data-area]')) b.onclick = () => {
   initAudio();
   const id = b.dataset.area, name = LEVELS[id].name.replace('The ', ''), price = PLACE_PRICE[id];
   if (!isOpen(id)) {
@@ -2948,6 +3005,351 @@ function drawPreviews() {
   }
 }
 
+// ---------- Mini game: The Friendly Diner (from Lily's drawing) ----------
+// Foods fly up. Slice your food to eat it, slice your friend's food to feed them. Don't slice the others!
+const DINER_FOODS = {
+  breakfast: [['waffle', 'Waffles with blueberries'], ['pancakes', 'Pancakes with whipped cream'], ['toast', 'Toast with strawberry jam'], ['egg', 'Fried egg'], ['donut', 'Sprinkle donut'], ['muffin', 'Chocolate chip muffin']],
+  lunch: [['pizza', 'Pepperoni pizza'], ['sandwich', 'Ham and cheese sandwich'], ['taco', 'Taco'], ['apple', 'Apple'], ['cookie', 'Chocolate chip cookie'], ['hotdog', 'Hot dog with mustard']],
+  dinner: [['burger', 'Cheeseburger'], ['spaghetti', 'Spaghetti and meatballs'], ['drumstick', 'Chicken drumstick'], ['broccoli', 'Broccoli'], ['corn', 'Corn on the cob'], ['cupcake', 'Strawberry cupcake']],
+};
+const SLICE_TIME = 60, BONUS_SLICE_TIME = 15;
+const SLICE_STARS = [15, 30, 50], SLICE_COINS = [0, 5, 10, 20], SLICE_BONUS_NEED = 25, SLICE_BONUS_COINS = 40;
+function drawFood(c, id) {
+  // food in unit size: about 1 wide, centred on 0,0
+  switch (id) {
+    case 'waffle':
+      rrect(c, -0.44, -0.44, 0.88, 0.88, 0.14, '#e8a84a', OUT, 0.045);
+      for (let i = -1; i <= 1; i++) { line(c, i * 0.22, -0.4, i * 0.22, 0.4, '#b9772a', 0.05); line(c, -0.4, i * 0.22, 0.4, i * 0.22, '#b9772a', 0.05); }
+      for (const [x, y] of [[-0.22, -0.2], [0.14, -0.28], [0.25, 0.1], [-0.1, 0.18], [0.05, -0.02], [-0.3, 0.3]]) { circle(c, x, y, 0.075, '#3f4fbf', OUT, 0.025); circle(c, x - 0.02, y - 0.025, 0.02, '#c9d2ff', null); }
+      break;
+    case 'pancakes':
+      for (const y of [0.24, 0.1, -0.04]) ellipse(c, 0, y, 0.46, 0.14, '#e9b066', OUT, 0.04);
+      ellipse(c, 0, -0.08, 0.42, 0.08, '#f6cf8c', null);
+      for (const [x, y, r] of [[-0.12, -0.18, 0.12], [0.1, -0.2, 0.12], [0, -0.3, 0.13], [0.02, -0.42, 0.08]]) circle(c, x, y, r, '#ffffff', OUT, 0.03);
+      circle(c, 0.04, -0.52, 0.07, '#e23b3b', OUT, 0.025);
+      break;
+    case 'toast':
+      c.beginPath(); c.moveTo(-0.38, 0.42); c.lineTo(-0.38, -0.12); c.bezierCurveTo(-0.5, -0.5, -0.1, -0.52, 0, -0.38); c.bezierCurveTo(0.1, -0.52, 0.5, -0.5, 0.38, -0.12); c.lineTo(0.38, 0.42); c.closePath();
+      c.fillStyle = vertical(c, '#c98a45', -0.5, 0.92); c.fill(); c.lineWidth = 0.045; c.strokeStyle = OUT; c.stroke();
+      rrect(c, -0.3, -0.24, 0.6, 0.6, 0.1, '#f7dca0', null);
+      rrect(c, -0.24, -0.16, 0.48, 0.46, 0.12, '#d6304a', null);
+      circle(c, -0.1, 0, 0.05, '#ff7a8f', null);
+      break;
+    case 'egg':
+      c.beginPath(); c.moveTo(-0.45, 0); c.bezierCurveTo(-0.5, -0.4, -0.05, -0.5, 0.15, -0.38); c.bezierCurveTo(0.5, -0.3, 0.5, 0.2, 0.3, 0.35); c.bezierCurveTo(0.05, 0.5, -0.42, 0.4, -0.45, 0); c.closePath();
+      c.fillStyle = '#ffffff'; c.fill(); c.lineWidth = 0.045; c.strokeStyle = OUT; c.stroke();
+      circle(c, 0, 0, 0.18, '#ffc61a', OUT, 0.035);
+      break;
+    case 'donut':
+      circle(c, 0, 0, 0.45, '#d99a5a', OUT, 0.045);
+      c.beginPath(); for (let i = 0; i <= 16; i++) { const a = i / 16 * Math.PI * 2, r = 0.38 + (i % 2) * 0.04; c.lineTo(Math.cos(a) * r, Math.sin(a) * r); } c.closePath(); c.fillStyle = '#ff8fc4'; c.fill();
+      circle(c, 0, 0, 0.13, '#ffd9d9', OUT, 0.04);
+      for (let i = 0; i < 10; i++) { const a = i * 0.63, r = 0.27; c.save(); c.translate(Math.cos(a) * r, Math.sin(a) * r); c.rotate(a * 2); rrect(c, -0.04, -0.012, 0.08, 0.024, 0.01, ['#ffcf33', '#29b6c9', '#ffffff', '#7bd389'][i % 4], null); c.restore(); }
+      break;
+    case 'muffin':
+      c.beginPath(); c.moveTo(-0.32, -0.02); c.lineTo(0.32, -0.02); c.lineTo(0.24, 0.44); c.lineTo(-0.24, 0.44); c.closePath(); fillStroke(c, '#ff8fc4', 0.045);
+      for (let i = -2; i <= 2; i++) line(c, i * 0.11, 0.02, i * 0.085, 0.42, '#e0629e', 0.03);
+      c.beginPath(); c.arc(0, -0.04, 0.4, Math.PI, 0); c.closePath(); c.fillStyle = radial(c, '#b07a46', 0, -0.15, 0.4); c.fill(); c.lineWidth = 0.045; c.strokeStyle = OUT; c.stroke();
+      for (const [x, y] of [[-0.2, -0.15], [0.05, -0.28], [0.2, -0.12], [-0.05, -0.1]]) ellipse(c, x, y, 0.045, 0.035, '#4a2a1a', null);
+      break;
+    case 'pizza':
+      c.beginPath(); c.moveTo(-0.42, -0.36); c.quadraticCurveTo(0, -0.5, 0.42, -0.36); c.lineTo(0, 0.5); c.closePath(); fillStroke(c, '#ffd27a', 0.045);
+      c.beginPath(); c.moveTo(-0.42, -0.36); c.quadraticCurveTo(0, -0.5, 0.42, -0.36); c.strokeStyle = '#d9984a'; c.lineWidth = 0.12; c.stroke();
+      for (const [x, y] of [[-0.14, -0.18], [0.15, -0.16], [0, 0.08], [0.02, -0.3]]) circle(c, x, y, 0.08, '#d6304a', OUT, 0.02);
+      break;
+    case 'sandwich':
+      c.beginPath(); c.moveTo(-0.45, 0.32); c.lineTo(0.45, 0.32); c.lineTo(-0.45, -0.42); c.closePath(); fillStroke(c, '#f0c27a', 0.045);
+      line(c, -0.45, 0.16, 0.25, 0.16, '#ffcf33', 0.08); line(c, -0.45, 0.05, 0.12, 0.05, '#ff9fb0', 0.08); line(c, -0.45, -0.06, 0.0, -0.06, '#7bd389', 0.06);
+      c.beginPath(); c.moveTo(-0.45, 0.32); c.lineTo(0.45, 0.32); c.lineTo(-0.45, -0.42); c.closePath(); c.lineWidth = 0.045; c.strokeStyle = OUT; c.stroke();
+      break;
+    case 'taco':
+      c.beginPath(); c.arc(0, 0.12, 0.46, Math.PI, 0); c.closePath(); fillStroke(c, '#ffd84a', 0.045);
+      for (let i = 0; i < 7; i++) circle(c, -0.33 + i * 0.11, -0.2 + Math.sin(i * 2) * 0.03, 0.08, i % 3 === 0 ? '#e23b3b' : i % 3 === 1 ? '#5cc46a' : '#8a5530', OUT, 0.02);
+      c.beginPath(); c.arc(0, 0.12, 0.46, Math.PI * 1.05, Math.PI * 1.95); c.strokeStyle = '#e0a21a'; c.lineWidth = 0.05; c.stroke();
+      break;
+    case 'apple':
+      circle(c, 0, 0.05, 0.42, '#e23b3b', OUT, 0.045);
+      limb(c, 0, -0.32, 0.04, -0.48, '#6e4a2f', 0.05);
+      ellipse(c, 0.17, -0.44, 0.13, 0.06, '#5cc46a', OUT, 0.025, -0.5);
+      break;
+    case 'cookie':
+      circle(c, 0, 0, 0.44, '#d9a25a', OUT, 0.045);
+      for (const [x, y] of [[-0.2, -0.15], [0.12, -0.22], [0.2, 0.12], [-0.08, 0.2], [0.0, -0.02], [-0.28, 0.12]]) ellipse(c, x, y, 0.06, 0.05, '#4a2a1a', null);
+      break;
+    case 'hotdog':
+      ellipse(c, 0, 0.08, 0.48, 0.2, '#e8b26a', OUT, 0.045);
+      rrect(c, -0.5, -0.12, 1.0, 0.18, 0.09, '#c2453a', OUT, 0.04);
+      c.beginPath(); for (let i = 0; i <= 8; i++) c.lineTo(-0.38 + i * 0.095, -0.03 + (i % 2 ? -0.05 : 0.03)); c.strokeStyle = '#ffd21a'; c.lineWidth = 0.04; c.stroke();
+      break;
+    case 'burger':
+      c.beginPath(); c.arc(0, -0.08, 0.42, Math.PI, 0); c.closePath(); c.fillStyle = radial(c, '#e8a04a', -0.1, -0.3, 0.45); c.fill(); c.lineWidth = 0.045; c.strokeStyle = OUT; c.stroke();
+      for (const [x, y] of [[-0.18, -0.3], [0.08, -0.36], [0.22, -0.22], [-0.02, -0.2]]) ellipse(c, x, y, 0.035, 0.02, '#fff3d6', null);
+      c.beginPath(); for (let i = 0; i <= 8; i++) c.lineTo(-0.46 + i * 0.115, -0.06 + (i % 2) * 0.06); c.lineTo(0.46, -0.02); c.lineTo(-0.46, -0.02); c.closePath(); c.fillStyle = '#5cc46a'; c.fill();
+      c.beginPath(); c.moveTo(-0.44, 0.0); c.lineTo(0.44, 0.0); c.lineTo(0.2, 0.12); c.lineTo(-0.3, 0.1); c.closePath(); c.fillStyle = '#ffcf33'; c.fill();
+      rrect(c, -0.44, 0.04, 0.88, 0.14, 0.07, '#6e3a20', OUT, 0.035);
+      rrect(c, -0.42, 0.18, 0.84, 0.18, 0.09, '#e8a04a', OUT, 0.04);
+      break;
+    case 'spaghetti':
+      c.beginPath(); c.moveTo(-0.48, -0.02); c.lineTo(0.48, -0.02); c.quadraticCurveTo(0.42, 0.42, 0, 0.42); c.quadraticCurveTo(-0.42, 0.42, -0.48, -0.02); c.closePath(); fillStroke(c, '#ffffff', 0.045);
+      for (let i = 0; i < 5; i++) { c.beginPath(); c.arc(-0.24 + i * 0.12, -0.06, 0.12, Math.PI, 0); c.strokeStyle = '#f5d77a'; c.lineWidth = 0.05; c.stroke(); }
+      ellipse(c, 0, -0.1, 0.3, 0.1, '#d6304a', null);
+      for (const x of [-0.16, 0.06, 0.24]) circle(c, x, -0.18, 0.09, '#8a4a2a', OUT, 0.025);
+      line(c, -0.38, 0.12, 0.38, 0.12, '#29b6c9', 0.04);
+      break;
+    case 'drumstick':
+      limb(c, 0.12, 0.18, 0.4, 0.42, '#fffaf0', 0.1); circle(c, 0.42, 0.38, 0.06, '#fffaf0', OUT, 0.025); circle(c, 0.36, 0.46, 0.06, '#fffaf0', OUT, 0.025);
+      ellipse(c, -0.1, -0.08, 0.34, 0.28, '#c97a35', OUT, 0.045, 0.6);
+      ellipse(c, -0.2, -0.16, 0.1, 0.06, '#e8a05a', null, 0, 0.6);
+      break;
+    case 'broccoli':
+      rrect(c, -0.1, 0.0, 0.2, 0.44, 0.08, '#9be07f', OUT, 0.04);
+      for (const [x, y, r] of [[-0.24, -0.08, 0.18], [0.24, -0.08, 0.18], [0, -0.22, 0.22], [-0.14, -0.3, 0.16], [0.16, -0.3, 0.16]]) circle(c, x, y, r, '#2f9a4a', OUT, 0.035);
+      break;
+    case 'corn':
+      for (const s of [-1, 1]) ellipse(c, s * 0.12, 0.1, 0.16, 0.4, '#5cc46a', OUT, 0.035, s * 0.35);
+      ellipse(c, 0, -0.04, 0.2, 0.44, '#ffd21a', OUT, 0.04);
+      for (let y = -0.36; y < 0.34; y += 0.1) for (const x of [-0.08, 0, 0.08]) circle(c, x, y, 0.035, '#f0b400', null);
+      break;
+    case 'cupcake':
+      c.beginPath(); c.moveTo(-0.3, 0.02); c.lineTo(0.3, 0.02); c.lineTo(0.22, 0.44); c.lineTo(-0.22, 0.44); c.closePath(); fillStroke(c, '#29b6c9', 0.045);
+      for (let i = -2; i <= 2; i++) line(c, i * 0.1, 0.06, i * 0.08, 0.42, '#1f8ea0', 0.03);
+      for (const [x, y, r] of [[-0.2, -0.02, 0.15], [0.2, -0.02, 0.15], [0, -0.06, 0.18], [0, -0.22, 0.15], [0.02, -0.34, 0.1]]) circle(c, x, y, r, '#ffb3cf', OUT, 0.03);
+      circle(c, 0.04, -0.46, 0.07, '#e23b3b', OUT, 0.025);
+      break;
+  }
+}
+const D = { step: 'meal', meal: null, mine: null, friend: null, g: null };
+function cafeHud() {
+  const g = D.g; if (!g) return;
+  $('cafeTime').textContent = '⏱ ' + Math.ceil(Math.max(0, g.t));
+  $('cafeTime').classList.toggle('low', g.t <= 10);
+  $('cafeFed').textContent = (g.bonus ? '🌟 ' : '😋 ') + (g.fed[0] + g.fed[1]) + (g.bonus ? '/' + SLICE_BONUS_NEED : '');
+  let h = ''; for (let i = 0; i < 3; i++) h += HEART(i < g.lives); $('cafeHearts').innerHTML = h;
+}
+function openCafe() { initAudio(); bankCoins(); updateWallet(); showOnly(ui.cafe); D.g = null; pickStep('meal'); $('cafeEnd').hidden = true; $('sliceHud').hidden = true; }
+function pickStep(step) {
+  D.step = step; $('cafePick').hidden = false;
+  $('mealBtns').hidden = step !== 'meal'; $('foodPick').hidden = step === 'meal';
+  if (step === 'meal') { $('pickText').textContent = 'You and your friend are at your favourite diner! First, pick a meal.'; return; }
+  const fn = friendName() === 'your friend' ? 'your friend' : friendName();
+  $('pickText').textContent = step === 'mine' ? 'What do you want to eat? Pick your food!' : `What does ${fn} want to eat? Pick their food!`;
+  const box = $('foodPick'); box.innerHTML = '';
+  for (const [id, name] of DINER_FOODS[D.meal]) {
+    const b = document.createElement('button'); b.className = 'fooditem' + (step === 'friend' && id === D.mine ? ' taken' : '');
+    const cv = document.createElement('canvas'); const px = Math.round(64 * DPR); cv.width = px; cv.height = px;
+    const c = cv.getContext('2d'); c.translate(px / 2, px / 2); c.scale(px * 0.78, px * 0.78); c.lineCap = 'round'; c.lineJoin = 'round'; drawFood(c, id);
+    b.append(cv, name);
+    b.onclick = () => { SFX.move(); if (step === 'mine') { D.mine = id; pickStep('friend'); } else { D.friend = id; startSlice(false); } };
+    box.appendChild(b);
+  }
+}
+const foodName = id => { for (const k in DINER_FOODS) for (const f of DINER_FOODS[k]) if (f[0] === id) return f[1]; return id; };
+function startSlice(bonus) {
+  $('cafePick').hidden = true; $('cafeEnd').hidden = true; $('sliceHud').hidden = false;
+  D.g = { bonus, t: bonus ? BONUS_SLICE_TIME : SLICE_TIME, lives: 3, fed: [0, 0], items: [], pieces: [], bites: [], splats: [], trail: [], pops: [], next: 0.8, over: false, endT: 0, bounce: [0, 0], elapsed: 0 };
+  cafeHud();
+  sliceToast(bonus ? 'Bonus round! Food frenzy!' : 'Swipe to slice!', '#ff4f9a');
+}
+function sliceToast(text, color) { D.g.pops.push({ text, x: 0.5, y: 0.34, life: 1.4, color, big: true }); }
+function launchFood() {
+  const g = D.g, w = cv2.w, h = cv2.h, R = cv2.R;
+  const others = DINER_FOODS[D.meal].map(f => f[0]).filter(id => id !== D.mine && id !== D.friend);
+  const n = g.bonus ? pick([2, 3, 3, 4]) : (Math.random() < 0.3 + clamp(g.elapsed / SLICE_TIME, 0, 1) * 0.4 ? pick([2, 3]) : 1);
+  const slots = [0, 1, 2, 3].sort(() => Math.random() - 0.5); let wrongUsed = false;
+  for (let k = 0; k < n; k++) {
+    const r = Math.random();
+    let id = g.bonus ? pick([D.mine, D.friend]) : r < 0.42 ? D.mine : r < 0.84 ? D.friend : pick(others);
+    if (id !== D.mine && id !== D.friend) { if (wrongUsed) id = pick([D.mine, D.friend]); wrongUsed = true; }
+    const x = w * (0.18 + slots[k] * 0.213) + rand(-w * 0.04, w * 0.04);
+    const peak = rand(h * 0.18, h * 0.42);
+    const grav = h * 1.1, vy = -Math.sqrt(2 * grav * (h + R - peak));
+    g.items.push({ id, x, y: h + R, vx: (w / 2 - x) * rand(0.2, 0.6) + rand(-40, 40), vy, grav, rot: rand(0, 6), vr: rand(-3, 3), done: false });
+  }
+}
+const cv2 = { w: 1, h: 1, R: 30 };
+const sliceCv = $('sliceCv');
+let slicing = null;
+sliceCv.addEventListener('pointerdown', e => { slicing = { id: e.pointerId }; addTrail(e); try { sliceCv.setPointerCapture(e.pointerId); } catch (er) {} });
+sliceCv.addEventListener('pointermove', e => { if (slicing) addTrail(e); });
+const endSlice = () => { slicing = null; if (D.g) D.g.trail.push(null); };
+sliceCv.addEventListener('pointerup', endSlice); sliceCv.addEventListener('pointercancel', endSlice);
+function addTrail(e) {
+  const g = D.g; if (!g || g.over) return;
+  const r = sliceCv.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
+  const last = g.trail[g.trail.length - 1];
+  g.trail.push({ x, y, t: 0.22 });
+  if (last) cutAlong(last.x, last.y, x, y);
+}
+function segDist(px, py, ax, ay, bx, by) {
+  const dx = bx - ax, dy = by - ay, L2 = dx * dx + dy * dy || 1;
+  const k = clamp(((px - ax) * dx + (py - ay) * dy) / L2, 0, 1);
+  return Math.hypot(px - (ax + dx * k), py - (ay + dy * k));
+}
+function cutAlong(ax, ay, bx, by) {
+  const g = D.g, R = cv2.R;
+  if (Math.hypot(bx - ax, by - ay) < 4) return;
+  for (const it of g.items) {
+    if (it.done) continue;
+    const ok = it.id === D.mine || it.id === D.friend;
+    if (segDist(it.x, it.y, ax, ay, bx, by) > R * (ok ? 0.85 : 0.55)) continue;
+    it.done = true;
+    const ang = Math.atan2(by - ay, bx - ax);
+    for (const side of [-1, 1]) g.pieces.push({ id: it.id, x: it.x, y: it.y, vx: it.vx * 0.3 + Math.cos(ang + Math.PI / 2) * side * 90, vy: Math.min(it.vy, 0) * 0.2 - 60 + Math.sin(ang + Math.PI / 2) * side * 90, rot: it.rot, vr: side * 4, ang, side, life: 1.4, grav: it.grav });
+    for (let i = 0; i < 8; i++) g.splats.push({ x: it.x, y: it.y, vx: rand(-200, 200), vy: rand(-260, 60), life: rand(0.4, 0.8), col: pick(['#ffffff', '#ffd84a', '#ff9fc8']) });
+    const who = it.id === D.mine ? 0 : it.id === D.friend ? 1 : -1;
+    if (who < 0) {
+      g.lives--; SFX.hurt(); g.pops.push({ text: 'Nobody ordered that!', x: it.x / cv2.w, y: it.y / cv2.h, life: 1, color: '#ff4f6d' });
+      cafeHud();
+      if (g.lives <= 0) endSlice2();
+    } else {
+      SFX.slide();
+      g.bites.push({ id: it.id, who, x: it.x, y: it.y, sx: it.x, sy: it.y, t: 0 });
+    }
+  }
+}
+function mouthPos(who) { const w = cv2.w, h = cv2.h; return [who === 0 ? w * 0.27 : w * 0.73, h - cv2.P * 1.55]; }
+function cafeTick(dt) {
+  if (ui.cafe.hidden) return;
+  const r = sliceCv.getBoundingClientRect();
+  const w = Math.max(1, r.width), h = Math.max(1, r.height);
+  const pw = Math.round(w * DPR), ph = Math.round(h * DPR);
+  if (sliceCv.width !== pw || sliceCv.height !== ph) { sliceCv.width = pw; sliceCv.height = ph; }
+  cv2.w = w; cv2.h = h; cv2.R = clamp(Math.min(w, h) * 0.085, 26, 60); cv2.P = clamp(Math.min(w * 0.22, h * 0.17), 60, 150);
+  const g = D.g;
+  if (g && !g.over) {
+    g.t -= dt; g.elapsed += dt;
+    g.next -= dt;
+    if (g.next <= 0) { launchFood(); g.next = g.bonus ? rand(0.35, 0.55) : lerp(1.15, 0.7, clamp(g.elapsed / SLICE_TIME, 0, 1)) * rand(0.8, 1.2); }
+    if (g.t <= 0) endSlice2();
+    cafeHud();
+  }
+  if (g) {
+    for (const it of g.items) { it.vy += it.grav * dt; it.x += it.vx * dt; it.y += it.vy * dt; it.rot += it.vr * dt; }
+    g.items = g.items.filter(it => !it.done && it.y < h + cv2.R * 2);
+    for (const p of g.pieces) { p.vy += p.grav * dt; p.x += p.vx * dt; p.y += p.vy * dt; p.rot += p.vr * dt; p.life -= dt; }
+    g.pieces = g.pieces.filter(p => p.life > 0 && p.y < h + cv2.R * 2);
+    for (const s of g.splats) { s.vy += 500 * dt; s.x += s.vx * dt; s.y += s.vy * dt; s.life -= dt; }
+    g.splats = g.splats.filter(s => s.life > 0);
+    for (const b of g.bites) {
+      b.t += dt * 2.2;
+      const [mx, my] = mouthPos(b.who), k = Math.min(1, b.t);
+      b.x = lerp(b.sx, mx, k); b.y = lerp(b.sy, my, k) - Math.sin(k * Math.PI) * 80;
+      if (b.t >= 1 && !b.done) {
+        b.done = true; g.fed[b.who]++; g.bounce[b.who] = 0.5; SFX.star();
+        g.pops.push({ text: pick(['Yum!', 'Mmm!', 'Yummy!', 'Delicious!']), x: mx / w, y: (my - cv2.P * 1.35) / h, life: 0.8, color: '#ff4f9a' });
+        cafeHud();
+        if (g.bonus && g.fed[0] + g.fed[1] >= SLICE_BONUS_NEED && !g.over) endSlice2();
+      }
+    }
+    g.bites = g.bites.filter(b => !b.done);
+    for (const q of g.pops) { q.life -= dt; q.y -= 0.04 * dt; }
+    g.pops = g.pops.filter(q => q.life > 0);
+    for (const q of g.trail) if (q) q.t -= dt;
+    while (g.trail.length && (!g.trail[0] || g.trail[0].t <= 0)) g.trail.shift();
+    for (let i = 0; i < 2; i++) if (g.bounce[i] > 0) g.bounce[i] -= dt;
+  }
+  drawDiner(dt);
+}
+function drawDiner() {
+  const c = sliceCv.getContext('2d'), w = cv2.w, h = cv2.h, R = cv2.R, P = cv2.P, g = D.g;
+  c.setTransform(DPR, 0, 0, DPR, 0, 0);
+  // wall, window and checker floor: your favourite diner
+  const wall = c.createLinearGradient(0, 0, 0, h); wall.addColorStop(0, '#ffe3c9'); wall.addColorStop(1, '#ffd0b0'); c.fillStyle = wall; c.fillRect(0, 0, w, h);
+  c.fillStyle = '#ff6f7f'; c.fillRect(0, h * 0.1, w, 10);
+  const ww = Math.min(w * 0.6, 520), wx = (w - ww) / 2, wy = h * 0.14, wh = h * 0.28;
+  c.fillStyle = '#9fdcff'; c.strokeStyle = OUT; c.lineWidth = 5; c.beginPath(); c.roundRect ? c.roundRect(wx, wy, ww, wh, 16) : c.rect(wx, wy, ww, wh); c.fill(); c.stroke();
+  c.beginPath(); c.moveTo(w / 2, wy); c.lineTo(w / 2, wy + wh); c.stroke();
+  c.fillStyle = '#ff4f9a'; c.font = `800 ${clamp(w * 0.06, 20, 40)}px "Baloo 2", system-ui, sans-serif`; c.textAlign = 'center'; c.textBaseline = 'middle';
+  c.lineWidth = 6; c.strokeStyle = '#fffaf0'; c.strokeText('DINER', w / 2, wy + wh + clamp(w * 0.05, 18, 34)); c.fillText('DINER', w / 2, wy + wh + clamp(w * 0.05, 18, 34));
+  const fy = h - P * 1.1, sq = Math.max(24, w / 14);
+  for (let y = fy, j = 0; y < h; y += sq, j++) for (let x = 0, i = 0; x < w; x += sq, i++) { c.fillStyle = (i + j) % 2 ? '#2d2440' : '#ffffff'; c.fillRect(x, y, sq, sq); }
+  // booth seats
+  for (const s of [0, 1]) { const bx = s ? w * 0.55 : w * 0.05; c.fillStyle = '#e23b3b'; c.strokeStyle = OUT; c.lineWidth = 4; c.beginPath(); c.roundRect ? c.roundRect(bx, h - P * 2.3, w * 0.4, P * 1.4, 22) : c.rect(bx, h - P * 2.3, w * 0.4, P * 1.4); c.fill(); c.stroke(); }
+  // you and your friend
+  for (const who of [0, 1]) {
+    const [mx] = mouthPos(who), L = who === 0 ? PLAYER_LOOK : FRIEND_LOOK;
+    const b = g && g.bounce[who] > 0 ? Math.sin(g.bounce[who] * 12) * 0.08 : 0;
+    c.save(); c.translate(mx, h - P * 0.38); c.scale(P, P); c.translate(0, -Math.abs(b));
+    drawPerson(c, L, { view: 'front', pose: 'stand', sit: true, wave: g && g.bounce[who] > 0 });
+    c.restore();
+    // their food, shown on a little sign
+    const fid = who === 0 ? D.mine : D.friend;
+    if (fid && g) {
+      const sx = mx + (who === 0 ? -P * 0.75 : P * 0.75), sy = h - P * 2.15;
+      c.fillStyle = '#fffaf0'; c.strokeStyle = OUT; c.lineWidth = 3; c.beginPath(); c.arc(sx, sy, R * 0.62, 0, 7); c.fill(); c.stroke();
+      c.save(); c.translate(sx, sy); c.scale(R * 0.9, R * 0.9); c.lineCap = 'round'; c.lineJoin = 'round'; drawFood(c, fid); c.restore();
+      c.font = `800 ${clamp(P * 0.16, 12, 20)}px "Baloo 2", system-ui, sans-serif`; c.lineWidth = 4; c.strokeStyle = '#fffaf0';
+      const lab = (who === 0 ? 'You' : (friendName() === 'your friend' ? 'Friend' : friendName())) + ': ' + (g ? g.fed[who] : 0);
+      c.strokeText(lab, mx, h - P * 2.62); c.fillStyle = OUT; c.fillText(lab, mx, h - P * 2.62);
+    }
+  }
+  // table edge in front
+  c.fillStyle = '#8fd3ff'; c.strokeStyle = OUT; c.lineWidth = 5; c.beginPath(); c.roundRect ? c.roundRect(-10, h - P * 0.5, w + 20, P * 0.6, 14) : c.rect(-10, h - P * 0.5, w + 20, P * 0.6); c.fill(); c.stroke();
+  c.fillStyle = '#c0c4d4'; c.fillRect(0, h - P * 0.5 + 8, w, 6);
+  if (!g) return;
+  c.lineCap = 'round'; c.lineJoin = 'round';
+  for (const s of g.splats) { c.globalAlpha = clamp(s.life * 2, 0, 1); c.fillStyle = s.col; c.beginPath(); c.arc(s.x, s.y, 4, 0, 7); c.fill(); }
+  c.globalAlpha = 1;
+  for (const it of g.items) {
+    c.save(); c.translate(it.x, it.y); c.rotate(it.rot); c.scale(R * 2, R * 2);
+    if (it.id === D.mine || it.id === D.friend) { c.beginPath(); c.arc(0, 0, 0.56, 0, 7); c.fillStyle = it.id === D.mine ? 'rgba(255,79,154,0.22)' : 'rgba(41,182,201,0.22)'; c.fill(); }
+    drawFood(c, it.id); c.restore();
+  }
+  for (const p of g.pieces) {
+    c.save(); c.globalAlpha = clamp(p.life * 2, 0, 1); c.translate(p.x, p.y); c.rotate(p.ang); c.beginPath(); c.rect(-R * 2, p.side < 0 ? -R * 2 : 0, R * 4, R * 2); c.clip(); c.rotate(p.rot - p.ang);
+    c.scale(R * 2, R * 2); drawFood(c, p.id); c.restore();
+  }
+  for (const b of g.bites) { c.save(); c.translate(b.x, b.y); c.scale(R * 1.1, R * 1.1); drawFood(c, b.id); c.restore(); }
+  // slice trail
+  const tr = g.trail;
+  for (let i = 1; i < tr.length; i++) {
+    const a = tr[i - 1], b = tr[i]; if (!a || !b) continue;
+    const k = clamp(b.t / 0.22, 0, 1);
+    c.strokeStyle = `rgba(255,255,255,${k})`; c.lineWidth = 3 + k * 9; c.beginPath(); c.moveTo(a.x, a.y); c.lineTo(b.x, b.y); c.stroke();
+    c.strokeStyle = `rgba(255,79,154,${k * 0.7})`; c.lineWidth = 2 + k * 3; c.stroke();
+  }
+  for (const q of g.pops) {
+    const fs = q.big ? clamp(w * 0.08, 26, 48) : clamp(w * 0.05, 16, 28);
+    c.globalAlpha = clamp(q.life * 2, 0, 1); c.font = `800 ${fs}px "Baloo 2", system-ui, sans-serif`;
+    c.lineWidth = fs * 0.22; c.strokeStyle = '#fffaf0'; c.strokeText(q.text, q.x * w, q.y * h); c.fillStyle = q.color; c.fillText(q.text, q.x * w, q.y * h);
+  }
+  c.globalAlpha = 1;
+}
+function endSlice2() {
+  const g = D.g; if (!g || g.over) return;
+  g.over = true; g.items.forEach(it => { it.done = true; });
+  const total = g.fed[0] + g.fed[1] + g.bites.length;
+  const bonusWon = g.bonus && total >= SLICE_BONUS_NEED;
+  let stars, earn;
+  if (g.bonus) { stars = bonusWon ? 4 : 3; earn = bonusWon ? SLICE_BONUS_COINS : 0; }
+  else { stars = SLICE_STARS.filter(n => total >= n).length; earn = SLICE_COINS[stars]; }
+  if (earn) { coins += earn; earned += earn; store('fmf_coins', String(coins)); store('fmf_earned', String(earned)); updateWallet(); refreshLock(); }
+  setTimeout(() => {
+    if (D.g !== g) return;
+    const st = $('cafeStars'); st.innerHTML = '';
+    for (let k = 0; k < (g.bonus ? 4 : 3); k++) { const sp = document.createElement('span'); sp.textContent = k === 3 ? '🌟' : '⭐'; if (k >= stars) sp.className = 'off'; st.appendChild(sp); }
+    const out = g.lives <= 0;
+    $('cafeEndEyebrow').textContent = g.bonus ? 'Bonus round' : out ? 'Oops!' : "Time's up!";
+    if (g.bonus) {
+      $('cafeEndTitle').textContent = bonusWon ? 'Food frenzy champion!' : 'So close!';
+      $('cafeEndText').textContent = bonusWon ? `You fed ${total}! +${SLICE_BONUS_COINS} coins!` : `You fed ${total} of ${SLICE_BONUS_NEED}. Get 3 stars again to try the bonus round.`;
+    } else {
+      $('cafeEndTitle').textContent = out ? 'Too many wrong foods!' : ['Keep practising!', 'Yummy!', 'So yummy!', 'Super slicer!'][stars];
+      const fn = friendName() === 'your friend' ? 'your friend' : friendName();
+      $('cafeEndText').textContent = `You ate ${g.fed[0]} and fed ${fn} ${g.fed[1]}.` + (earn ? ` +${earn} coins!` : ` Feed ${SLICE_STARS[0]} to get a star.`) + (stars === 3 ? ' You unlocked the bonus round!' : '');
+    }
+    $('bonusBtn').hidden = g.bonus || stars < 3;
+    if (stars >= 3) SFX.win(); else SFX.over();
+    $('sliceHud').hidden = true; $('cafeEnd').hidden = false;
+  }, 700);
+}
+for (const b of document.querySelectorAll('.meal')) b.onclick = () => { initAudio(); SFX.move(); D.meal = b.dataset.meal; pickStep('mine'); };
+$('pickBack').onclick = () => { SFX.move(); if (D.step === 'friend') pickStep('mine'); else if (D.step === 'mine') pickStep('meal'); else toMenu(); };
+$('cafeBtn').onclick = openCafe;
+$('cafeAgain').onclick = () => { D.g = null; $('cafeEnd').hidden = true; pickStep('meal'); };
+$('bonusBtn').onclick = () => startSlice(true);
+$('cafeQuit').onclick = $('cafeHome').onclick = () => { D.g = null; toMenu(); };
+
 setLevel(store('fmf_area') || 'park');
 updateWallet();
 
@@ -2958,10 +3360,11 @@ function frame(now) {
   update(dt);
   render();
   drawPreviews();
+  cafeTick(dt);
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
-window.__fmf = { get S() { return S; } };
+window.__fmf = { get S() { return S; }, get D() { return D; } };
 })();
 </script>
 
