@@ -292,7 +292,7 @@ label.namefield input:focus-visible { box-shadow: 0 0 0 4px var(--sun); }
         <button class="area" id="areaPark" role="radio" data-area="park"><span class="em" aria-hidden="true">🌳</span><span class="nm">Park</span></button>
         <button class="area" id="areaDrive" role="radio" data-area="drive"><span class="em" aria-hidden="true">🚗</span><span class="nm">Driving</span><span class="lock" aria-hidden="true">🔒</span></button>
         <button class="area" id="areaParty" role="radio" data-area="party"><span class="em" aria-hidden="true">🎉</span><span class="nm">Party</span><span class="lock" aria-hidden="true">🔒</span></button>
-        <button class="area" id="areaCastle" role="radio" data-area="castle"><span class="em" aria-hidden="true">🏰</span><span class="nm">Castle</span><span class="lock" aria-hidden="true">🔒</span></button>
+        <button class="area" id="areaCastle" role="radio" data-area="castle"><span class="em" aria-hidden="true">🏰</span><span class="nm">Boss Level</span><span class="lock" aria-hidden="true">🔒</span></button>
         <div class="locknote" id="lockNote" aria-live="polite"></div>
         <button class="area cafe" id="cafeBtn"><span class="em" aria-hidden="true">🍳</span><span class="nm">Mini game</span></button>
         
@@ -600,7 +600,7 @@ const LEVELS = {
     pathA: '#ffd9ec', pathB: '#efdcff', pathEdge: '#ff8fc4', laneMark: 'rgba(255,255,255,0.8)',
   },
   castle: {
-    id: 'castle', num: 5, base: 0.14, kind: 'land', name: 'The Castle', goal: 1300, next: null, keepLabel: 'Keep running',
+    id: 'castle', num: 5, base: 0.14, kind: 'land', name: 'The Boss Level', goal: 1300, next: null, keepLabel: 'Keep running',
     story: 'Your friend is waiting past the lava castle! Put on your armor, dodge the knights and their arrows, and run to the castle.',
     winStory: 'You beat two dragons, flew through the sky and landed at the party with your friend!',
     how: [['⟷', 'Dodge knights, rocks and the swooping dragon. Some knights swing their swords into the next lane!'], ['↓', 'Swipe down to raise your shield. It blocks arrows and lava balls, and you duck under banners'], ['↑', 'Swipe up to jump over lava pits and barrels'], ['🐉', 'Inside the castle, block lava balls back at the dragon, and jump to hit it with your sword when it gets tired'], ['❤️', 'Grab floating hearts to win back a life. The dragon drops one each time it gets tired!'], ['☁️', 'Then fly! Swipe up over clouds, down under planes, and dodge birds and dragons. You get all your hearts back!'], ['🌈', 'Beat the second dragon on the rainbow, then swipe down to land with your friend']],
