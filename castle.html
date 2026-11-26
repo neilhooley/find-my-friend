@@ -590,7 +590,7 @@ const LEVELS = {
   party: {
     id: 'party', num: 4, base: 0.14, kind: 'land', name: 'The Party', goal: 1200, next: 'castle', keepLabel: 'Keep partying',
     story: "You and your friend are going to a birthday party! Drop off your present, then find your friend.",
-    winStory: 'Party time with your friend! Next: the castle, if you dare!',
+    winStory: 'Party time with your friend! Next: the boss level, if you dare!',
     how: [['🎁', 'You start with a present. Steer to the gift table to put it down!'], ['↓', 'Swipe down to slide under the piñata'], ['↑', 'Swipe up to bounce over the bounce house'], ['⟷', 'Dodge the waving person and the cake. No cake without your friend!']],
     patterns: [['one', 24, 0], ['two', 22, 0.12], ['jump1', 15, 0], ['slide1', 15, 0], ['jumpAll', 6, 0.3], ['slideAll', 6, 0.35], ['mixed', 10, 0.4]],
     dodge: ['waver', 'cake'], jumpers: ['bounce'], jumpAll: 'bounce', slider: 'pinata',
@@ -602,7 +602,7 @@ const LEVELS = {
   castle: {
     id: 'castle', num: 5, base: 0.14, kind: 'land', name: 'The Boss Level', goal: 1300, next: null, keepLabel: 'Keep running',
     story: 'Your friend is waiting past the lava castle! Put on your armor, dodge the knights and their arrows, and run to the castle.',
-    winStory: 'You beat two dragons, flew through the sky and landed at the party with your friend!',
+    winStory: 'You beat three dragons, crossed the Dragon Dimension and made it to the party with your friend!',
     how: [['⟷', 'Dodge knights, rocks and the swooping dragon. Some knights swing their swords into the next lane!'], ['↓', 'Swipe down to raise your shield. It blocks arrows and lava balls, and you duck under banners'], ['↑', 'Swipe up to jump over lava pits and barrels'], ['🐉', 'Inside the castle, block lava balls back at the dragon, and jump to hit it with your sword when it gets tired'], ['❤️', 'Grab floating hearts to win back a life. The dragon drops one each time it gets tired!'], ['☁️', 'Then fly! Swipe up over clouds, down under planes, and dodge birds and dragons. You get all your hearts back!'], ['🌈', 'Beat the second dragon on the rainbow, then swipe down to land with your friend']],
     patterns: [['one', 20, 0], ['two', 18, 0.12], ['jump1', 13, 0], ['slide1', 11, 0], ['jumpAll', 5, 0.3], ['slideAll', 4, 0.35], ['mixed', 8, 0.4], ['knightWalk', 9, 0.05], ['swoop', 8, 0.1], ['swingKnight', 11, 0.06], ['archer', 11, 0.04]],
     dodge: ['knight', 'knight', 'rock'], jumpers: ['lavapit', 'barrel'], jumpAll: 'lavapit', slider: 'banner',
@@ -857,6 +857,13 @@ function spawnScenery(z) {
     S.scen.push({ type, x, z, seed: Math.random() * 10, big: rand(0.9, 1.2) });
     return;
   }
+  if (level.id === 'castle' && S.pal && S.pal.void) {
+    if (r < 0.45) { type = 'crystal'; x = side * rand(3.4, 7); }
+    else if (r < 0.75) { type = 'vspire'; x = side * rand(4.5, 9.5); }
+    else { type = 'visle'; x = side * rand(5, 11); }
+    S.scen.push({ type, x, z, seed: Math.random() * 10, big: rand(0.8, 1.3), h: rand(1.8, 4.5) });
+    return;
+  }
   if (level.id === 'castle' && S.pal && S.pal.skyish) { S.scen.push({ type: 'puff', x: side * rand(4.2, 10), z, seed: Math.random() * 10, big: rand(0.8, 1.6), h: Math.random() < 0.7 ? rand(-0.8, 0.6) : rand(5.5, 7.5) }); return; }
   if (level.id === 'castle' && !S.pal) {
     if (r < 0.14) { type = 'tower'; x = side * rand(6, 9); }
@@ -899,7 +906,7 @@ function act(a) {
   if (S.mode !== 'play') return;
   if (S.boss && S.boss.phase === 'land') { if (a === 'down') startGlide(); return; }
   if (S.fly && (a === 'up' || a === 'down')) { const p = S.p; p.flyT = 0.85; p.flyDir = a === 'up' ? 1 : -1; if (a === 'up') SFX.jump(); else SFX.slide(); return; }
-  if (S.boss && (S.boss.phase === 'boom' || (S.boss.phase === 'glide' && (a === 'up' || a === 'down')))) return;
+  if (S.boss && (S.boss.phase === 'boom' || S.boss.phase === 'escape' || (S.boss.phase === 'glide' && (a === 'up' || a === 'down')))) return;
   if (level.id === 'drive' && (a === 'up' || a === 'down')) return;
   const p = S.p;
   if (a === 'left' && p.lane > -1) { p.lane--; SFX.move(); }
@@ -1100,7 +1107,7 @@ $('resumeBtn').onclick = togglePause;
 $('pauseBtn').onclick = togglePause;
 $('soundBtn').onclick = () => { soundOn = !soundOn; store('fmf_sound', soundOn ? 'on' : 'off'); setSoundIcon(); initAudio(); };
 $('keepBtn').onclick = () => {
-  S.endless = true; S.friend = null; S.boss = null; S.pal = null; S.fly = null; S.p.glide = false; S.p.y = 0; S.p.vy = 0; S.objs = S.objs.filter(o => o.type !== 'friend');
+  S.endless = true; S.friend = null; S.boss = null; S.pal = null; S.fly = null; S.dim = null; S.gust = null; S.p.glide = false; S.p.y = 0; S.p.vy = 0; S.objs = S.objs.filter(o => o.type !== 'friend');
   S.mode = 'play'; S.nextRow = S.dist + 12; S.lastRow = S.dist;
   showOnly(null); lastHud = ''; updateHud();
   popup(level.kind === 'water' ? 'Endless swim! Go go go!' : 'Endless run! Go go go!', W / 2, H * 0.4, '#ff4f9a');
@@ -1122,7 +1129,7 @@ function gameOver() {
   $('overDist').textContent = Math.floor(S.dist);
   $('overStars').textContent = S.stars;
   const left = Math.max(0, Math.ceil(level.goal - S.dist));
-  $('overTitle').textContent = S.reason === 'time' ? "Time's up!" : S.endless ? 'What a run!' : (left < 300 ? `So close to ${friendName()}!` : 'Out of lives!');
+  $('overTitle').textContent = S.reason === 'gust' ? 'Blown away by the gust!' : S.reason === 'time' ? "Time's up!" : S.endless ? 'What a run!' : (left < 300 ? `So close to ${friendName()}!` : 'Out of lives!');
   ui.over.querySelector('.eyebrow').textContent = S.reason === 'time' && left < 300 ? `${left} m from ${friendName()}` : 'Oops!';
   $('overBest').textContent = isBest ? 'New best run!' : bestLine();
   showOnly(ui.over);
@@ -1164,18 +1171,20 @@ const WHOOSH = () => tone(420, 0.35, 'sawtooth', 0.05, 140);
 const CLANG = () => { tone(1500, 0.12, 'square', 0.06, 900); tone(2200, 0.2, 'triangle', 0.06, null, 0.03); };
 const TWANG = () => tone(700, 0.15, 'triangle', 0.06, 300);
 function startBoss(round = 1) {
-  const hp = round === 1 ? DRAGON_HP : 14;
-  S.boss = { round, maxHp: hp, phase: 'fight', hp, x: 0, tl: 0, z: BOSS_Z + 14, y: BOSS_Y + 1.5, volley: 5, next: 2.4, fireT: 0, t: 0, landT: 0, enter: round === 1 ? 1 : 0, hurtT: 0, hitReady: true, charged: false, cl: 0, hintT: 7, boomT: 0 };
+  const hp = round === 1 ? DRAGON_HP : round === 2 ? 14 : MOTHER_HP, big = round === 3;
+  S.boss = { round, maxHp: hp, phase: 'fight', hp, x: 0, tl: 0, z: (big ? 15 : BOSS_Z) + 14, y: BOSS_Y + 1.5, volley: big ? 4 : 5, next: 2.4, fireT: 0, t: 0, landT: 0, enter: round === 1 ? 1 : 0, hurtT: 0, hitReady: true, charged: false, cl: 0, hintT: big ? 10 : 7, boomT: 0,
+    k: big ? 2.8 : BOSS_K, bz: big ? 15 : BOSS_Z, by: big ? 3.1 : BOSS_Y, tz: big ? 9 : 6.5, ty: big ? 1.5 : 0.95, gustN: 0 };
+  S.gust = null;
   S.objs = S.objs.filter(o => o.z < 0);
   if (round === 1) {
     S.scen = S.scen.filter(o => o.type === 'torch' || o.type === 'geyser' || o.type === 'srock');
     for (let z = 2; z < 40; z += 6) for (const sd of [-1, 1]) S.scen.push({ type: 'torch', x: sd * 3.0, z, seed: z, big: 1 });
-  } else {
+  } else if (round === 2) {
     S.pal = RAINBOW_PAL; S.p.glide = false; S.p.flyT = 0;
     S.scen = []; for (let z = -2; z < SPAWN_Z; z += 2.2) spawnScenery(z + rand(0, 1));
-  }
+  } else { S.pal = DIM_PAL; S.dim = null; setTimeout(ROAR, 400); S.shake = 0.6; }
   S.p.slideT = 0; ROAR();
-  popup(round === 1 ? 'Inside the castle... the dragon!' : 'A rainbow! And another dragon!', W / 2, H * 0.34, '#ff3b3b');
+  popup(round === 1 ? 'Inside the castle... the dragon!' : round === 2 ? 'A rainbow! And another dragon!' : 'The Mother of All Dragons!', W / 2, H * 0.34, '#ff3b3b');
 }
 function bossHeart() {
   if (S.lives >= maxLives()) return;
@@ -1184,16 +1193,20 @@ function bossHeart() {
   popup('Grab the heart!', W / 2, H * 0.36, '#ff4f6d');
 }
 function bossHit(n, txt, col) {
-  const B = S.boss; if (!B || B.phase === 'boom' || B.phase === 'glide') return;
+  const B = S.boss; if (!B || B.phase === 'boom' || B.phase === 'glide' || B.phase === 'escape') return;
   B.hp = Math.max(0, B.hp - n); B.hurtT = 0.45; CLANG(); S.shake = 0.2;
   const pp = proj(B.x * LANE, B.z); burst(pp.x, pp.y - B.y * pp.s, 'spark', 12);
   popup(txt, W / 2, H * 0.3, col);
+  if (B.hp <= 0 && B.round === 2) {
+    B.phase = 'escape'; B.t = 0; B.grab = false; S.stars += 10; ROAR(); S.objs = S.objs.filter(o => o.type !== 'fireball');
+    popup('It is flying away!', W / 2, H * 0.58, '#8a4dff'); popup('Grab on! +10 coins', W / 2, H * 0.64, '#8a4dff'); return;
+  }
   if (B.hp <= 0) {
-    B.phase = 'boom'; B.boomT = 0; BOOM(); setTimeout(BOOM, 250); S.shake = 1.3; S.stars += 10;
+    B.phase = 'boom'; B.boomT = 0; BOOM(); setTimeout(BOOM, 250); S.shake = 1.3; S.stars += B.round === 3 ? 20 : 10;
     S.objs = S.objs.filter(o => o.type !== 'fireball');
     B.sx = pp.x; B.sy = pp.y - B.y * pp.s;
     for (const k of ['star', 'spark', 'heart', 'spark', 'star', 'spark']) burst(B.sx, B.sy, k, 30);
-    popup('You slayed the dragon! +10 coins', W / 2, H * 0.62, '#8a4dff');
+    if (B.round === 3) { popup('You beat the Mother', W / 2, H * 0.6, '#8a4dff'); popup('of All Dragons! +20 coins', W / 2, H * 0.66, '#8a4dff'); } else popup('You slayed the dragon! +10 coins', W / 2, H * 0.62, '#8a4dff');
   }
 }
 function bossTick(dt) {
@@ -1203,7 +1216,7 @@ function bossTick(dt) {
   if (B.hintT > 0) B.hintT -= dt;
   const live = S.mode === 'play';
   if (B.phase === 'fight') {
-    B.z = lerp(B.z, BOSS_Z, clamp(dt * 2, 0, 1)); B.y = lerp(B.y, BOSS_Y + Math.sin(B.t * 2) * 0.2, clamp(dt * 3, 0, 1));
+    B.z = lerp(B.z, B.bz, clamp(dt * 2, 0, 1)); B.y = lerp(B.y, B.by + Math.sin(B.t * 2) * 0.2, clamp(dt * 3, 0, 1));
     B.x = lerp(B.x, B.tl, clamp(dt * 5, 0, 1));
     if (B.fireT > 0) B.fireT -= dt;
     B.next -= dt;
@@ -1211,6 +1224,7 @@ function bossTick(dt) {
     if (B.next <= 0 && live) {
       B.aimed = false;
       if (B.volley <= 0) {
+        if (B.round === 3) { startGust(B); return; }
         if (B.hp <= 8 && !B.charged) { B.phase = 'charge'; B.charged = true; B.cl = p.lane; B.t = 0; ROAR(); popup('The dragon is charging! Move!', W / 2, H * 0.32, '#ff3b3b'); }
         else { B.phase = 'tired'; B.t = 0; B.landT = 0; popup('The dragon is tired!', W / 2, H * 0.3, '#8a4dff'); bossHeart(); }
         return;
@@ -1218,7 +1232,7 @@ function bossTick(dt) {
       B.fireT = 0.35; WHOOSH();
       const f = B.hp / B.maxHp;
       const lanes = [Math.round(B.tl)];
-      const two = f > 0.67 ? 0 : f > 0.34 ? 0.45 : 0.65;
+      const two = B.round === 3 ? (f > 0.67 ? 0.3 : f > 0.34 ? 0.55 : 0.75) : f > 0.67 ? 0 : f > 0.34 ? 0.45 : 0.65;
       if (Math.random() < two) lanes.push(pick([-1, 0, 1].filter(l => l !== lanes[0])));
       for (const l of lanes) S.objs.push({ type: 'fireball', lane: l, lx: l, z: B.z - 1, z0: B.z - 1, y: B.y, y0: B.y, vz: lerp(17, 12, f), done: false, seed: Math.random() * 6 });
       B.volley--; B.next = lerp(0.75, 1.2, f);
@@ -1233,14 +1247,14 @@ function bossTick(dt) {
     }
   } else if (B.phase === 'tired') {
     B.x = lerp(B.x, 0, clamp(dt * 3, 0, 1));
-    B.z = lerp(B.z, 6.5, clamp(dt * 2.5, 0, 1)); B.y = lerp(B.y, 0.95, clamp(dt * 2.5, 0, 1));
-    const landed = B.z < 7.5;
+    B.z = lerp(B.z, B.tz, clamp(dt * 2.5, 0, 1)); B.y = lerp(B.y, B.ty, clamp(dt * 2.5, 0, 1));
+    const landed = B.z < B.tz + 1;
     if (landed) B.landT += dt;
     if (p.y === 0) B.hitReady = true;
-    if (landed && p.y > 0.7 && B.hitReady && live) { B.hitReady = false; bossHit(2, 'Sword hit! -2', '#29b6c9'); }
-    else if (B.landT > 3.6 && B.phase === 'tired') {
-      B.phase = 'fight'; B.volley = 5 + Math.round((B.maxHp - B.hp) / 3); B.next = 1.3; B.charged = false; ROAR();
-      popup('It is flying again!', W / 2, H * 0.32, '#ff3b3b');
+    if (landed && p.y > 0.7 && B.hitReady && live) { B.hitReady = false; if (B.round === 3) { if (B.hitsLeft > 0) { B.hitsLeft--; bossHit(2, 'Sword hit! -2', '#29b6c9'); } else popup('She is getting up!', W / 2, H * 0.3, '#ff3b3b'); } else bossHit(2, 'Sword hit! -2', '#29b6c9'); }
+    else if (B.landT > (B.round === 3 ? 4.2 : 3.6) && B.phase === 'tired') {
+      B.phase = 'fight'; B.volley = B.round === 3 ? 4 + Math.round((B.maxHp - B.hp) / 8) : 5 + Math.round((B.maxHp - B.hp) / 3); B.next = 1.3; B.charged = false; ROAR();
+      popup(B.round === 3 ? 'She is flying again!' : 'It is flying again!', W / 2, H * 0.32, '#ff3b3b');
     }
   } else if (B.phase === 'boom') {
     B.boomT += dt;
@@ -1251,7 +1265,43 @@ function bossTick(dt) {
     if (B.boomT > 2.6) { B.phase = 'land'; B.t = 0; p.glide = true; }
   } else if (B.phase === 'land') {
     p.y = lerp(p.y, 3 + Math.sin(B.t * 2) * 0.1, clamp(dt * 3, 0, 1)); p.vy = 0;
+  } else if (B.phase === 'escape') {
+    if (B.t < 1.3) { B.x = lerp(B.x, p.x, clamp(dt * 4, 0, 1)); B.z = lerp(B.z, 1.4, clamp(dt * 2.5, 0, 1)); B.y = lerp(B.y, 3.7, clamp(dt * 3, 0, 1)); }
+    else {
+      if (!B.grab) { B.grab = true; SFX.jump(); p.lane = 0; popup('You grabbed on!', W / 2, H * 0.3, '#ff4f9a'); }
+      B.x = lerp(B.x, 0, clamp(dt * 2, 0, 1)); B.y = lerp(B.y, 4.4, clamp(dt * 1.5, 0, 1)); B.z = lerp(B.z, 1.4, clamp(dt * 3, 0, 1));
+      p.y = lerp(p.y, B.y - 2.0, clamp(dt * 6, 0, 1));
+    }
+    p.vy = 0; p.slideT = 0;
+    if (B.t > 2.2 && !B.portal) { B.portal = true; WIND(); popup('A portal!', W / 2, H * 0.36, '#c77dff'); }
+    if (B.t > 4.4) startDim();
+  } else if (B.phase === 'gust') {
+    B.x = lerp(B.x, 0, clamp(dt * 3, 0, 1)); B.z = lerp(B.z, B.bz, clamp(dt * 2, 0, 1)); B.y = lerp(B.y, B.by + 0.7, clamp(dt * 3, 0, 1));
+    if (B.t > B.warn && !B.blown && live) { B.blown = true; S.gust = { z: B.z - 2, safe: B.safe, hit: false }; WIND(); S.shake = 0.5; }
+    const G = S.gust;
+    if (G) {
+      G.z -= 24 * dt;
+      if (!G.hit && G.z <= 0.3) { G.hit = true; if (Math.round(p.x) !== G.safe) { gustKO(); return; } const pp = proj(p.x * LANE, 0); popup('Phew! Safe!', pp.x, pp.y - 3.1 * pp.s, '#2fae62'); }
+      if (G.z < -5) S.gust = null;
+    }
+    if (B.blown && !S.gust) {
+      B.gustN--; B.blown = false;
+      if (B.gustN > 0) { B.t = 0; B.warn = 1.3; B.safe = pick([-1, 0, 1].filter(l => l !== B.safe)); ROAR(); popup('Another gust!', W / 2, H * 0.32, '#ff3b3b'); }
+      else { B.phase = 'tired'; B.t = 0; B.landT = 0; B.gusted = true; popup('She is worn out!', W / 2, H * 0.3, '#8a4dff'); B.hitsLeft = 3; bossHeart(); }
+    }
   }
+}
+function startGust(B) {
+  const p = S.p;
+  B.phase = 'gust'; B.t = 0; B.warn = 1.8; B.blown = false; B.gustN = B.hp <= B.maxHp / 2 ? 2 : 1;
+  B.safe = pick([-1, 0, 1].filter(l => l !== p.lane)); ROAR();
+  popup('She is flapping her wings!', W / 2, H * 0.32, '#ff3b3b');
+}
+function gustKO() {
+  const p = S.p, pp = proj(p.x * LANE, 0);
+  S.lives = 0; lastHud = ''; S.shake = 1; WIND(); SFX.hurt();
+  popup('WHOOSH! The gust blew you away!', W / 2, H * 0.42, '#8a4dff'); burst(pp.x, pp.y - pp.s, 'spark', 24);
+  S.mode = 'falling'; S.cheerT = 0; S.reason = 'gust';
 }
 function startGlide() {
   const B = S.boss, p = S.p;
@@ -1264,7 +1314,7 @@ function startGlide() {
         const lane = pick([-1, 0, 1]), yAt = Math.max(0, p.y - 0.6 * (z / 9.5));
         for (let i = 0; i < 3; i++) S.objs.push({ type: 'star', lane, lx: lane, z: z + i * 2, y: yAt + 0.4, vz: 0, done: false, seed: i + n });
       }
-      SFX.jump(); popup('Glide down to the party!', W / 2, H * 0.3, '#29b6c9');
+      SFX.jump(); popup(B.round === 3 ? 'Through the portal... glide to the party!' : 'Glide down to the party!', W / 2, H * 0.3, '#29b6c9');
     }
   }
 }
@@ -1277,7 +1327,7 @@ function glideTick(dt) {
 }
 function drawBoss() {
   const B = S.boss; if (!B || B.phase === 'glide' || B.phase === 'land') return;
-  let k = BOSS_K, alpha = 1;
+  let k = B.k || BOSS_K, alpha = 1;
   if (B.phase === 'boom') { k *= 1 + B.boomT * 0.6; alpha = clamp(1 - B.boomT * 3, 0, 1); }
   if (alpha <= 0) return;
   withWorld(B.x * LANE, B.z, 0, () => {
@@ -1285,9 +1335,10 @@ function drawBoss() {
     shadow(ctx, 1.3);
     ctx.translate(0, -B.y); ctx.scale(k, k);
     if (B.hurtT > 0 && Math.floor(B.hurtT * 16) % 2 === 0) ctx.globalAlpha *= 0.4;
-    drawDragon(ctx, S.t, { tired: B.phase === 'tired', fire: B.fireT > 0 || B.phase === 'charge', skin: B.round === 2 ? DRAGON_SKY : DRAGON_GREEN });
+    const M = B.round === 3;
+    drawDragon(ctx, S.t * (B.phase === 'gust' ? 1.8 : 1), { tired: B.phase === 'tired', fire: B.fireT > 0 || B.phase === 'charge', skin: M ? DRAGON_MOTHER : B.round === 2 ? DRAGON_SKY : DRAGON_GREEN, mean: M, crown: M, glow: M ? 'rgba(255,80,210,0.45)' : null, flapBig: M && B.phase === 'gust' });
   }, B.z < SPAWN_Z);
-  if (B.phase === 'tired') label(B.x * LANE, B.z, B.y + 2.7, 'Zzz...', '#8a4dff');
+  if (B.phase === 'tired') label(B.x * LANE, B.z, B.y + 1.5 * (B.k || BOSS_K), 'Zzz...', '#8a4dff');
 }
 function textAtScreen(txt, x, y, fs, col) {
   ctx.font = `800 ${fs}px "Baloo 2", system-ui, sans-serif`; ctx.lineWidth = fs * 0.26; ctx.strokeStyle = '#fffaf0'; ctx.strokeText(txt, x, y); ctx.fillStyle = col; ctx.fillText(txt, x, y);
@@ -1302,18 +1353,23 @@ function drawBossUi() {
     ctx.closePath(); ctx.fillStyle = '#ff3b3b'; ctx.fill(); ctx.globalAlpha = 1;
   }
   if (B.phase === 'land') { const big = clamp(Math.min(W, H) * 0.065, 20, 40), k = 1 + Math.sin(S.t * 6) * 0.05; ctx.save(); ctx.translate(W / 2, H * 0.4); ctx.scale(k, k); textAtScreen('↓', 0, -big * 1.1, big, '#ff4f9a'); textAtScreen('Swipe down to land!', 0, 0, big, '#ff4f9a'); ctx.restore(); }
-  if (B.phase !== 'boom' && B.phase !== 'glide' && B.phase !== 'land') {
-    const bw = Math.min(W * 0.6, 300), bx = W / 2 - bw / 2, by = Math.max(124, H * 0.16);
-    textAtScreen(`🐉 Dragon health ${B.hp}/${B.maxHp}`, W / 2, by - fs * 0.9, fs, '#2d2440');
-    ctx.fillStyle = '#fffaf0'; ctx.strokeStyle = OUT; ctx.lineWidth = 3; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(bx, by, bw, 18, 9) : ctx.rect(bx, by, bw, 18); ctx.fill(); ctx.stroke();
+  if (B.phase === 'gust') drawGustUi(B);
+  if (B.phase !== 'boom' && B.phase !== 'glide' && B.phase !== 'land' && B.phase !== 'escape') {
+    const M = B.round === 3, bh = M ? 24 : 18;
+    const bw = M ? Math.min(W * 0.86, 440) : Math.min(W * 0.6, 300), bx = W / 2 - bw / 2, by = Math.max(124, H * 0.16);
+    textAtScreen(M ? `👑 Mother of All Dragons ${B.hp}/${B.maxHp}` : `🐉 Dragon health ${B.hp}/${B.maxHp}`, W / 2, by - fs * 0.9, fs, M ? '#8a1f6e' : '#2d2440');
+    ctx.fillStyle = '#fffaf0'; ctx.strokeStyle = OUT; ctx.lineWidth = 3; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(bx, by, bw, bh, bh / 2) : ctx.rect(bx, by, bw, bh); ctx.fill(); ctx.stroke();
     const f = clamp(B.hp / B.maxHp, 0, 1);
-    if (f > 0) { ctx.fillStyle = B.hurtT > 0 ? '#ffffff' : '#ff3b3b'; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(bx + 3, by + 3, (bw - 6) * f, 12, 6) : ctx.rect(bx + 3, by + 3, (bw - 6) * f, 12); ctx.fill(); }
-    if (B.hintT > 0 && B.phase === 'fight') textAtScreen('↓ Swipe down to block lava balls with your shield!', W / 2, H * 0.93, clamp(Math.min(W, H) * 0.036, 12, 20), '#29b6c9');
+    if (f > 0) { ctx.fillStyle = B.hurtT > 0 ? '#ffffff' : M ? '#c13cff' : '#ff3b3b'; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(bx + 3, by + 3, (bw - 6) * f, bh - 6, (bh - 6) / 2) : ctx.rect(bx + 3, by + 3, (bw - 6) * f, bh - 6); ctx.fill(); }
+    const hs = clamp(Math.min(W, H) * 0.036, 12, 20);
+    if (B.hintT > 0 && B.phase === 'fight' && !M) textAtScreen('↓ Swipe down to block lava balls with your shield!', W / 2, H * 0.93, hs, '#29b6c9');
+    if (B.hintT > 0 && B.phase === 'fight' && M) { textAtScreen('She is too big for one trick!', W / 2, H * 0.9, hs, '#c77dff'); textAtScreen('Find a way to beat her... watch what she does!', W / 2, H * 0.9 + hs * 1.3, hs, '#c77dff'); }
   }
-  if (B.phase === 'tired' && B.z < 7.5) {
+  if (B.phase === 'escape' && B.t > 1.6) drawPortal(clamp((B.t - 1.6) / 2.8, 0, 1));
+  if (B.phase === 'tired' && B.z < B.tz + 1) {
     const big = clamp(Math.min(W, H) * 0.06, 18, 38), k = 1 + Math.sin(S.t * 6) * 0.05;
     ctx.save(); ctx.translate(W / 2, H * 0.42); ctx.scale(k, k);
-    textAtScreen('↑', 0, -big * 1.1, big, '#ff4f9a'); textAtScreen('Jump and hit it with your sword!', 0, 0, big, '#ff4f9a');
+    textAtScreen('↑', 0, -big * 1.1, big, '#ff4f9a'); textAtScreen(B.round === 3 ? 'Jump and hit her with your sword!' : 'Jump and hit it with your sword!', 0, 0, big, '#ff4f9a');
     ctx.restore();
   }
   ctx.restore();
@@ -1433,6 +1489,172 @@ function drawFlyUi() {
   ctx.restore();
 }
 
+// ---------- Dragon Dimension: through the portal, then the Mother of All Dragons ----------
+const MOTHER_HP = 30, DIM_LEN = 700;
+const DRAGON_VOID = { b: '#5d3a8c', d: '#432a68', w: '#3a2059', wd: '#1a0d2e', s: '#7a58a8', belly: '#c9a6ff', eye: '#ffe14d', horn: '#e2d9f0' };
+const DRAGON_LOW = { b: '#8a2f6e', d: '#66204f', w: '#4a1f5e', wd: '#200a2e', s: '#a85690', belly: '#ffb0dc', eye: '#ffe14d', horn: '#e2d9f0' };
+const DRAGON_MOTHER = { b: '#3e2760', d: '#2a1844', w: '#9a1f7a', wd: '#4d0f3e', s: '#5e4488', belly: '#d9b8ff', eye: '#ff4fd8', horn: '#f0eaff' };
+const DIM_PAL = { sky: ['#07040d', '#1a0d2e', '#3a1f5c'], hillFar: '#1c1230', hillNear: '#251840', treeLine: '#2e1d4d', grassA: '#0b0714', grassB: '#140c22', pathA: '#3b2d57', pathB: '#33264d', pathEdge: '#b98cff', edgeW: 0.12, laneMark: 'rgba(210,170,255,0.6)', haze: 'rgba(70,35,110,', cloud: 'rgba(170,120,255,0.16)', noSun: true, void: true };
+const DIM_TYPES = ['vspike', 'vrock', 'vlow', 'vdragon', 'vfire'];
+const WIND = () => { tone(260, 0.9, 'sawtooth', 0.06, 70); tone(520, 0.7, 'triangle', 0.04, 120, 0.08); tone(180, 1.0, 'square', 0.03, 50, 0.15); };
+function startDim() {
+  const p = S.p; S.boss = null; S.gust = null; S.pal = DIM_PAL;
+  S.dim = { start: S.dist, end: S.dist + DIM_LEN, hintT: 8, fade: 1 };
+  p.glide = false; p.y = 0; p.vy = 0; p.slideT = 0; p.flyT = 0; p.lane = 0; p.x = 0;
+  S.objs = []; S.scen = []; for (let z = -2; z < SPAWN_Z; z += 2.2) spawnScenery(z + rand(0, 1));
+  S.lastRow = S.dist; S.nextRow = S.dist + 26;
+  S.lives = maxLives(); lastHud = ''; ROAR();
+  popup('The Dragon Dimension!', W / 2, H * 0.28, '#c77dff'); popup('All 3 hearts are back!', W / 2, H * 0.34, '#ff4f6d'); popup('Find the Mother of All Dragons!', W / 2, H * 0.4, '#ff4f9a');
+}
+function dimCoins(lane, z) {
+  if (S.lives < maxLives() && Math.random() < 0.15) { S.objs.push({ type: 'heartUp', lane, lx: lane, z, y: 0.6, vz: 0, done: false, seed: 0 }); return; }
+  if (Math.random() > 0.35) return;
+  for (let i = 0; i < 3; i++) S.objs.push({ type: 'star', lane, lx: lane, z: z - 2 + i * 2, y: 0.6, vz: 0, done: false, seed: i });
+}
+function spawnDimRow() {
+  const k = clamp((S.dist - S.dim.start) / DIM_LEN, 0, 1), L = shuffled(), z = SPAWN_Z, sp = S.speed;
+  const add = (type, lane, ex = {}) => S.objs.push(Object.assign({ type, lane, lx: lane, z, y: 0, vz: 0, done: false, seed: Math.random() * 10 }, ex));
+  const low = l => add('vlow', l, { y: 1.6, vz: sp * 0.3 }), drag = l => add('vdragon', l, { y: 1.3, shot: false, fireT: 0 });
+  const pat = pick(k < 0.2 ? ['spike', 'rock', 'low', 'spike'] : ['spike2', 'rockSpike', 'dragon', 'lowWall', 'lowSpike', 'dragon', 'rock2', 'dragonRock', 'spike2']);
+  switch (pat) {
+    case 'spike': add('vspike', L[0]); dimCoins(L[1], z); break;
+    case 'spike2': add('vspike', L[0]); add('vspike', L[1]); dimCoins(L[2], z); break;
+    case 'rock': add('vrock', L[0]); dimCoins(L[1], z); break;
+    case 'rock2': for (const l of L) add('vrock', l); break;
+    case 'rockSpike': add('vrock', L[0]); add('vspike', L[1]); dimCoins(L[2], z); break;
+    case 'low': low(L[0]); dimCoins(L[1], z); break;
+    case 'lowWall': for (const l of L) low(l); break;
+    case 'lowSpike': low(L[0]); add('vspike', L[1]); dimCoins(L[2], z); break;
+    case 'dragon': drag(L[0]); dimCoins(L[1], z); break;
+    case 'dragonRock': drag(L[0]); add('vrock', L[1]); break;
+  }
+  S.lastRow = S.dist; S.nextRow = S.dist + lerp(27, 18, k) * rand(0.9, 1.15) + (pat.indexOf('dragon') === 0 ? 8 : 0);
+}
+function dimHits(p) {
+  for (const o of S.objs) {
+    if (o.done || DIM_TYPES.indexOf(o.type) < 0 || Math.abs(o.z) > 0.6 || Math.abs(o.lx - p.x) > 0.55) continue;
+    const t = o.type, pp = proj(p.x * LANE, 0);
+    if (t === 'vfire' && p.slideT > 0 && p.y === 0) { o.done = true; CLANG(); popup('Blocked!', pp.x, pp.y - 3.1 * pp.s, '#29b6c9'); continue; }
+    const safe = t === 'vrock' ? p.y > 0.55 : t === 'vlow' ? (p.slideT > 0 && p.y < 0.3) : t === 'vfire' ? p.y > 1.0 : false;
+    if (safe) continue;
+    o.done = true;
+    if (p.inv <= 0) {
+      hurt();
+      const msg = { vspike: 'Ouch! Spiky rocks!', vrock: 'Jump over the small rocks!', vlow: 'Duck under the low dragons!', vdragon: 'The dragon got you!', vfire: 'Ouch, hot!' }[t];
+      popup(msg, pp.x, pp.y - 3.1 * pp.s, '#ff3b3b');
+    }
+  }
+}
+// art
+function drawJagged(c, h, w, seed, t) {
+  const n = 5, pts = [];
+  for (let i = 0; i <= n; i++) { const x = -w + (2 * w * i) / n, peak = i % 2 ? h * (0.75 + 0.25 * Math.sin(seed * 3 + i)) : h * (0.35 + 0.15 * Math.cos(seed + i)); pts.push([x + (i % 2 ? 0.04 : 0), -peak]); }
+  c.beginPath(); c.moveTo(-w - 0.05, 0); for (const [x, y] of pts) c.lineTo(x, y); c.lineTo(w + 0.05, 0); c.closePath(); fillStroke(c, '#6a3fa8', 0.045);
+  c.beginPath(); c.moveTo(-w * 0.2, 0); c.lineTo(pts[3][0], pts[3][1]); c.lineTo(w * 0.55, 0); c.closePath(); c.fillStyle = '#9d6be0'; c.fill();
+  c.save(); c.globalAlpha *= 0.6 + Math.sin(t * 3 + seed) * 0.3;
+  c.beginPath(); c.moveTo(-w * 0.3, -h * 0.1); c.lineTo(-w * 0.1, -h * 0.3); c.lineTo(-w * 0.2, -h * 0.45); c.lineTo(0.02, -h * 0.62);
+  c.strokeStyle = '#ff7bf0'; c.lineWidth = 0.05; c.lineJoin = 'round'; c.stroke(); c.restore();
+}
+function drawCrystals(c, k, seed, t) {
+  c.save(); c.scale(k, k);
+  for (const [x, h, a] of [[-0.3, 0.9, -0.25], [0, 1.4, 0.05], [0.32, 0.75, 0.3]]) {
+    c.save(); c.translate(x, 0); c.rotate(a);
+    c.beginPath(); c.moveTo(-0.13, 0); c.lineTo(-0.13, -h * 0.75); c.lineTo(0, -h); c.lineTo(0.13, -h * 0.75); c.lineTo(0.13, 0); c.closePath(); fillStroke(c, '#b56bff', 0.035);
+    c.beginPath(); c.moveTo(0, 0); c.lineTo(0, -h); c.lineTo(0.13, -h * 0.75); c.lineTo(0.13, 0); c.closePath(); c.fillStyle = '#d9a6ff'; c.fill();
+    c.restore();
+  }
+  c.save(); c.globalAlpha *= 0.3 + Math.sin(t * 2 + seed) * 0.15; circle(c, 0, -0.6, 0.7, '#d98cff', null); c.restore();
+  c.restore();
+}
+function drawSpire(c, k, seed, t) {
+  c.save(); c.scale(k, k);
+  c.beginPath(); c.moveTo(-0.55, 0); c.lineTo(-0.35, -1.2); c.lineTo(-0.42, -1.3); c.lineTo(-0.15, -2.6); c.lineTo(-0.05, -2.4); c.lineTo(0.05, -3.4); c.lineTo(0.2, -2.2); c.lineTo(0.3, -2.3); c.lineTo(0.42, -1.0); c.lineTo(0.55, 0); c.closePath();
+  fillStroke(c, '#2a1a45', 0.05);
+  c.save(); c.globalAlpha *= 0.7 + Math.sin(t * 2.5 + seed) * 0.3; circle(c, 0.05, -3.45, 0.16, '#ff7bf0', null); circle(c, 0.05, -3.45, 0.32, 'rgba(255,123,240,0.3)', null); c.restore();
+  c.restore();
+}
+function drawIsle(c, k, seed) {
+  c.save(); c.scale(k, k);
+  c.beginPath(); c.moveTo(-0.9, 0); c.lineTo(-0.55, 0.4); c.lineTo(-0.2, 0.55); c.lineTo(0.05, 1.05); c.lineTo(0.3, 0.5); c.lineTo(0.65, 0.35); c.lineTo(0.9, 0); c.closePath(); fillStroke(c, '#2a1a45', 0.04);
+  ellipse(c, 0, 0, 0.92, 0.2, '#7a5fb0', OUT, 0.04);
+  for (const x of [-0.35, 0.3]) { c.beginPath(); c.moveTo(x - 0.08, 0); c.lineTo(x, -0.35 - (seed % 1) * 0.2); c.lineTo(x + 0.08, 0); c.closePath(); fillStroke(c, '#d59cff', 0.025); }
+  c.restore();
+}
+function drawVoid() {
+  for (let i = 0; i < 70; i++) {
+    const x = (i * 137.7) % W, y = (i * 71.3) % (horizon * 0.95), sz = i % 3 ? 2 : 3;
+    ctx.globalAlpha = 0.35 + 0.55 * Math.abs(Math.sin(S.t * 1.3 + i)); ctx.fillStyle = i % 5 ? '#e9d8ff' : '#ff9ff3'; ctx.fillRect(x, y, sz, sz);
+  }
+  ctx.globalAlpha = 1;
+  const gx = W / 2 - camX * 6, gy = horizon * 0.42, gr = Math.min(W, H) * 0.12;
+  ctx.save(); ctx.translate(gx, gy); ctx.rotate(S.t * 0.4);
+  for (let i = 0; i < 3; i++) { ctx.beginPath(); ctx.ellipse(0, 0, gr * (1 - i * 0.25), gr * (1 - i * 0.25) * 0.9, i, 0, 7); ctx.strokeStyle = `rgba(200,120,255,${0.25 + i * 0.12})`; ctx.lineWidth = 3; ctx.stroke(); }
+  ctx.restore();
+  const par = -camX * 5;
+  for (const [fx, fy, s] of [[0.12, 0.55, 1], [0.38, 0.22, 0.55], [0.72, 0.48, 1.15], [0.93, 0.25, 0.65]]) {
+    const span = W + 240, x = ((fx * W + par * s) % span + span) % span - 120, y = fy * horizon + Math.sin(S.t * 0.8 + fx * 9) * 6, r = Math.min(W, H) * 0.06 * s;
+    ctx.beginPath(); ctx.moveTo(x - r * 1.4, y); ctx.lineTo(x - r * 0.8, y + r * 0.7); ctx.lineTo(x - r * 0.3, y + r * 0.9); ctx.lineTo(x, y + r * 1.7); ctx.lineTo(x + r * 0.4, y + r * 0.8); ctx.lineTo(x + r, y + r * 0.6); ctx.lineTo(x + r * 1.4, y); ctx.closePath();
+    ctx.fillStyle = '#26173f'; ctx.fill(); ctx.strokeStyle = '#120a20'; ctx.lineWidth = 2; ctx.stroke();
+    ctx.beginPath(); ctx.ellipse(x, y, r * 1.45, r * 0.3, 0, 0, 7); ctx.fillStyle = '#6a52a0'; ctx.fill(); ctx.stroke();
+    for (const ox of [-0.5, 0.2, 0.7]) { ctx.beginPath(); ctx.moveTo(x + ox * r - r * 0.12, y); ctx.lineTo(x + ox * r, y - r * 0.5); ctx.lineTo(x + ox * r + r * 0.12, y); ctx.closePath(); ctx.fillStyle = '#c98cff'; ctx.fill(); }
+  }
+  for (let i = 0; i < 18; i++) { const x = (i * 113.3) % W, y = horizon - ((S.t * 18 + i * 61) % (horizon + 10)); ctx.globalAlpha = 0.6; ctx.fillStyle = i % 2 ? '#c77dff' : '#ff9ff3'; ctx.beginPath(); ctx.arc(x + Math.sin(S.t * 1.5 + i) * 8, y, 1.5 + (i % 3), 0, 7); ctx.fill(); }
+  ctx.globalAlpha = 1;
+}
+function drawPortal(f) {
+  const cx = W / 2, cy = H * 0.36, R = lerp(Math.min(W, H) * 0.05, Math.hypot(W, H) * 0.8, f * f);
+  ctx.save();
+  const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, R);
+  g.addColorStop(0, '#05020a'); g.addColorStop(0.55, '#3a0f6b'); g.addColorStop(0.85, '#b04dff'); g.addColorStop(1, 'rgba(176,77,255,0)');
+  ctx.fillStyle = g; ctx.beginPath(); ctx.arc(cx, cy, R, 0, 7); ctx.fill();
+  ctx.translate(cx, cy); ctx.rotate(S.t * 3);
+  for (let i = 0; i < 6; i++) { ctx.rotate(Math.PI / 3); ctx.beginPath(); ctx.moveTo(0, 0); ctx.quadraticCurveTo(R * 0.5, -R * 0.15, R * 0.85, R * 0.1); ctx.strokeStyle = i % 2 ? 'rgba(255,123,240,0.7)' : 'rgba(199,125,255,0.7)'; ctx.lineWidth = Math.max(3, R * 0.04); ctx.stroke(); }
+  ctx.restore();
+  if (f > 0.75) { ctx.save(); ctx.globalAlpha = clamp((f - 0.75) * 4, 0, 1); ctx.fillStyle = '#1a0a2e'; ctx.fillRect(0, 0, W, H); ctx.restore(); }
+}
+function drawGustUi(B) {
+  const h = LANE / 2, zf = Math.max(2, B.z - 2), pulse = 0.22 + Math.abs(Math.sin(S.t * 9)) * 0.22;
+  ctx.save();
+  for (const l of [-1, 0, 1]) {
+    const safe = l === B.safe;
+    ctx.globalAlpha = safe ? 0.35 : B.blown ? 0.18 : pulse;
+    ctx.beginPath(); [[l * LANE - h, 0], [l * LANE + h, 0], [l * LANE + h, zf], [l * LANE - h, zf]].forEach(([x, z], i) => { const q = proj(x, z); i ? ctx.lineTo(q.x, q.y) : ctx.moveTo(q.x, q.y); });
+    ctx.closePath(); ctx.fillStyle = safe ? '#2fae62' : '#ff3b3b'; ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+  const G = S.gust;
+  if (G && G.z > -1) for (const l of [-1, 0, 1]) {
+    if (l === G.safe) continue;
+    const z1 = Math.max(0.2, G.z), z2 = Math.max(z1 + 0.5, G.z + 3);
+    ctx.globalAlpha = 0.7; ctx.beginPath(); [[l * LANE - h, z1], [l * LANE + h, z1], [l * LANE + h, z2], [l * LANE - h, z2]].forEach(([x, z], i) => { const q = proj(x, z); i ? ctx.lineTo(q.x, q.y) : ctx.moveTo(q.x, q.y); });
+    ctx.closePath(); ctx.fillStyle = '#e9e0ff'; ctx.fill();
+    const q = proj(l * LANE, z1);
+    for (let i = 0; i < 3; i++) { ctx.beginPath(); ctx.arc(q.x + (i - 1) * q.s * 0.35, q.y - q.s * (0.6 + i * 0.35), q.s * 0.3, S.t * 12 + i, S.t * 12 + i + 4.4); ctx.strokeStyle = '#ffffff'; ctx.lineWidth = Math.max(2, q.s * 0.07); ctx.globalAlpha = 0.9; ctx.stroke(); }
+  }
+  ctx.globalAlpha = 1;
+  label(B.safe * LANE, 2.2, 0.4, 'SAFE!', '#2fae62');
+  if (!B.blown) {
+    const big = clamp(Math.min(W, H) * 0.06, 18, 38), k = 1 + Math.sin(S.t * 8) * 0.05;
+    ctx.save(); ctx.translate(W / 2, H * 0.42); ctx.scale(k, k); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineJoin = 'round';
+    textAtScreen('💨 WING GUST! 💨', 0, -big * 1.2, big, '#ff3b3b'); textAtScreen('Get to the green lane!', 0, 0, big * 0.85, '#2fae62');
+    ctx.restore();
+  }
+  ctx.restore();
+}
+function drawDimUi() {
+  const F = S.dim; if (!F) return;
+  const fs = clamp(Math.min(W, H) * 0.04, 13, 21);
+  ctx.save(); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineJoin = 'round';
+  const bw = Math.min(W * 0.6, 300), bx = W / 2 - bw / 2, by = Math.max(124, H * 0.16);
+  textAtScreen('🌀 Cross the Dragon Dimension', W / 2, by - fs * 0.9, fs, '#6a2fb0');
+  ctx.fillStyle = '#fffaf0'; ctx.strokeStyle = OUT; ctx.lineWidth = 3; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(bx, by, bw, 16, 8) : ctx.rect(bx, by, bw, 16); ctx.fill(); ctx.stroke();
+  const f = clamp((S.dist - F.start) / DIM_LEN, 0, 1);
+  if (f > 0) { ctx.fillStyle = '#c13cff'; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(bx + 3, by + 3, (bw - 6) * f, 10, 5) : ctx.rect(bx + 3, by + 3, (bw - 6) * f, 10); ctx.fill(); }
+  if (F.hintT > 0) { const s2 = clamp(Math.min(W, H) * 0.034, 12, 19); textAtScreen('⟷ dodge spiky rocks and dragons', W / 2, H * 0.9, s2, '#8a4dff'); textAtScreen('↑ jump small rocks   ↓ duck under low dragons', W / 2, H * 0.9 + s2 * 1.3, s2, '#8a4dff'); }
+  ctx.restore();
+  if (F.fade > 0) { ctx.save(); ctx.globalAlpha = clamp(F.fade, 0, 1); ctx.fillStyle = '#1a0a2e'; ctx.fillRect(0, 0, W, H); ctx.restore(); }
+}
+
 // ---------- Update ----------
 function endChallenge() { S.chal = null; S.chalAt = S.dist + 500; }
 function hurt() {
@@ -1466,6 +1688,8 @@ function update(dt) {
     let target = (11 + 11 * d) * (level.speedMul || 1);
     if (S.boss) target = S.boss.phase === 'glide' ? 9.5 : 0;
     if (S.fly) target = 15 + 4 * clamp((S.dist - S.fly.start) / FLY_LEN, 0, 1);
+    if (S.dim) target = 14 + 5 * clamp((S.dist - S.dim.start) / DIM_LEN, 0, 1);
+    if (S.boss && S.boss.phase === 'escape' && S.boss.grab) target = 16;
     if (S.slow > 0) { S.slow -= dt; target *= 0.6; }
     S.speed = lerp(S.speed, target, clamp(dt * 2, 0, 1));
   } else if (S.mode === 'start') {
@@ -1480,7 +1704,7 @@ function update(dt) {
 
   const move = S.speed * dt;
   if (playing) S.dist += move;
-  if (playing && !S.endless && !S.boss && !S.fly) {
+  if (playing && !S.endless && !S.boss && !S.fly && !S.dim) {
     const before = Math.ceil(S.time);
     S.time = Math.max(0, S.time - dt);
     const after = Math.ceil(S.time);
@@ -1494,7 +1718,7 @@ function update(dt) {
   // player
   p.x = lerp(p.x, p.lane, clamp(dt * 14, 0, 1));
   camX = p.x * LANE * 0.45;
-  if (!S.fly && !(S.boss && (S.boss.phase === 'boom' || S.boss.phase === 'glide' || S.boss.phase === 'land')) && (p.y > 0 || p.vy > 0)) {
+  if (!S.fly && !(S.boss && (S.boss.phase === 'boom' || S.boss.phase === 'glide' || S.boss.phase === 'land' || S.boss.phase === 'escape')) && (p.y > 0 || p.vy > 0)) {
     p.vy -= (level.gravity || GRAVITY) * dt; p.y += p.vy * dt;
     if (p.y <= 0) { p.y = 0; p.vy = 0; if (p.slideQueued) { p.slideQueued = false; p.slideT = SLIDE_TIME; SFX.slide(); } }
   }
@@ -1503,6 +1727,7 @@ function update(dt) {
   if (S.boss && S.mode === 'play' && S.boss.phase !== 'glide') bossTick(dt);
   if (S.boss && S.boss.phase === 'glide' && (S.mode === 'play' || S.mode === 'cheer' || S.mode === 'won')) glideTick(dt);
   if (S.fly && S.mode === 'play') flyTick(dt);
+  if (S.dim) { if (S.dim.fade > 0) S.dim.fade -= dt * 0.7; if (S.dim.hintT > 0 && S.mode === 'play') S.dim.hintT -= dt; }
   p.phase += dt * (S.speed > 0.5 ? 6 + S.speed * 0.45 : 0);
   if (S.shake > 0) S.shake -= dt;
 
@@ -1516,6 +1741,7 @@ function update(dt) {
   const friendAt = level.goal;
   if (playing) {
     if (S.fly) { if (S.dist >= S.nextRow && S.dist < S.fly.end - SPAWN_Z - 10) spawnFlyRow(); if (S.dist >= S.fly.end) { S.fly = null; startBoss(2); } }
+    if (S.dim) { if (S.dist >= S.nextRow && S.dist < S.dim.end - SPAWN_Z - 10) spawnDimRow(); if (S.dist >= S.dim.end) { S.dim = null; startBoss(3); } }
     const roomForFriend = S.endless || S.dist < friendAt - SPAWN_Z - 14;
     const C = S.chal;
     if (!C && !S.hasPresent && S.lives < maxLives() && S.dist > S.chalAt && S.dist >= S.nextRow && (S.endless || S.dist < friendAt - SPAWN_Z - 200)) startChallenge();
@@ -1540,6 +1766,8 @@ function update(dt) {
     if (o.type === 'fireball' && o.parried && !o.done && S.boss && o.z >= S.boss.z - 0.5) { o.done = true; bossHit(1, 'Blocked it back! -1', '#29b6c9'); }
     if (o.type === 'archer' && !o.shot && o.z < 32 && o.z > 4 && playing) { o.shot = true; TWANG(); const tl = S.p.lane; S.objs.push({ type: 'arrow', lane: tl, lx: o.lx, tl, z: o.z - 0.5, y: 1.15, vz: S.speed * 0.6, done: false, seed: 0, dir: Math.sign(o.lx) }); }
     if (o.type === 'arrow') o.lx = lerp(o.lx, o.tl, clamp(dt * 2.5, 0, 1));
+    if (o.type === 'vdragon') { if (o.fireT > 0) o.fireT -= dt; if (!o.shot && o.z < 34 && o.z > 8 && playing) { o.shot = true; o.fireT = 0.45; WHOOSH(); const tl = S.p.lane; S.objs.push({ type: 'vfire', lane: tl, lx: o.lx, tl, z: o.z - 1, y: 0.8, vz: S.speed * 0.6, done: false, seed: Math.random() * 6 }); } }
+    if (o.type === 'vfire') o.lx = lerp(o.lx, o.tl, clamp(dt * 2.5, 0, 1));
     if (o.type === 'bird') o.lx = Math.sin(S.t * 1.5 + o.ph) * 1.05;
     if (o.type === 'skydragon') { if (o.fireT > 0) o.fireT -= dt; if (!o.shot && o.z < 36 && playing) { o.shot = true; o.fireT = 0.45; WHOOSH(); S.objs.push({ type: 'skyfire', lane: o.lane, lx: o.lx, z: o.z - 1, y: FLY_Y, vz: S.speed * 0.8, done: false, seed: Math.random() * 6 }); } }
     if (o.type === 'meanDog') {
@@ -1573,6 +1801,7 @@ function update(dt) {
   // collisions
   if (playing) {
     if (S.fly) flyHits(p);
+    if (S.dim) dimHits(p);
     for (const o of S.objs) {
       if (o.done) continue;
       if (o.type === 'fireball' && !o.parried && o.z < 1.0 && o.z > -0.6 && Math.abs(o.lx - p.x) < 0.55) {
@@ -1615,7 +1844,7 @@ function update(dt) {
         }
         continue;
       }
-      if (t === 'friend' || t === 'gate' || t === 'fireball' || t === 'arrow' || t === 'archer' || t === 'heartUp' || FLY_TYPES.indexOf(t) >= 0) continue;
+      if (t === 'friend' || t === 'gate' || t === 'fireball' || t === 'arrow' || t === 'archer' || t === 'heartUp' || FLY_TYPES.indexOf(t) >= 0 || DIM_TYPES.indexOf(t) >= 0) continue;
       if (t === 'bigHeart') {
         if (Math.abs(o.y - (p.y + 0.6)) < 1.1) {
           o.done = true; S.lives = Math.min(maxLives(), S.lives + 1); SFX.pet();
@@ -2979,8 +3208,9 @@ function drawHelmet(c, K, front) {
   }
 }
 function drawDragon(c, t, o = {}) {
-  const K = o.skin || DRAGON_GREEN;
-  const flap = Math.sin(t * (o.tired ? 2 : 7)) * (o.tired ? 0.08 : 0.28);
+  const K = o.skin || DRAGON_GREEN, mean = o.mean;
+  if (o.glow) { c.save(); const g = c.createRadialGradient(0, -0.1, 0, 0, -0.1, 1.7); g.addColorStop(0, o.glow); g.addColorStop(1, 'rgba(0,0,0,0)'); c.fillStyle = g; c.fillRect(-1.8, -1.9, 3.6, 3.6); c.restore(); }
+  const flap = o.flapBig ? Math.sin(t * 9) * 0.55 : Math.sin(t * (o.tired ? 2 : 7)) * (o.tired ? 0.08 : 0.28);
   for (const s of [-1, 1]) {
     c.save(); c.scale(s, 1); c.translate(0.3, -0.25); c.rotate(-flap);
     c.beginPath(); c.moveTo(0, -0.05); c.quadraticCurveTo(0.6, -1.0, 1.25, -0.72); c.quadraticCurveTo(1.05, -0.4, 1.15, -0.12);
@@ -2993,34 +3223,45 @@ function drawDragon(c, t, o = {}) {
   c.beginPath(); c.moveTo(0.85, 0.16); c.lineTo(1.08, -0.08); c.lineTo(1.04, 0.2); c.closePath(); fillStroke(c, K.w, 0.03);
   for (const s of [-1, 1]) { ellipse(c, s * 0.3, 0.56, 0.18, 0.13, K.d, OUT, 0.04); for (const k of [-1, 0, 1]) circle(c, s * 0.3 + k * 0.07, 0.66, 0.025, '#ffffff', null); }
   ellipse(c, 0, 0.08, 0.56, 0.56, K.b, OUT, 0.05);
-  ellipse(c, 0, 0.18, 0.34, 0.4, '#ffe08a', OUT, 0.035);
-  for (const y of [0.02, 0.16, 0.3]) line(c, -0.22, y, 0.22, y, '#e8b850', 0.025);
+  ellipse(c, 0, 0.18, 0.34, 0.4, K.belly || '#ffe08a', OUT, 0.035);
+  for (const y of [0.02, 0.16, 0.3]) line(c, -0.22, y, 0.22, y, K.belly ? shade(K.belly, -0.18) : '#e8b850', 0.025);
   for (const s of [-1, 1]) ellipse(c, s * 0.42, 0.12, 0.09, 0.15, K.d, OUT, 0.035, s * 0.6);
   const hy = -0.62;
   for (const s of [-1, 1]) {
-    c.beginPath(); c.moveTo(s * 0.14, hy - 0.28); c.lineTo(s * 0.3, hy - 0.62); c.lineTo(s * 0.3, hy - 0.22); c.closePath(); fillStroke(c, '#ffcf33', 0.03);
+    if (mean) { c.beginPath(); c.moveTo(s * 0.12, hy - 0.28); c.quadraticCurveTo(s * 0.3, hy - 0.7, s * 0.5, hy - 0.92); c.quadraticCurveTo(s * 0.4, hy - 0.5, s * 0.32, hy - 0.2); c.closePath(); fillStroke(c, K.horn || '#ffcf33', 0.03); }
+    else { c.beginPath(); c.moveTo(s * 0.14, hy - 0.28); c.lineTo(s * 0.3, hy - 0.62); c.lineTo(s * 0.3, hy - 0.22); c.closePath(); fillStroke(c, '#ffcf33', 0.03); }
     c.beginPath(); c.moveTo(s * 0.34, hy - 0.08); c.lineTo(s * 0.58, hy - 0.2); c.lineTo(s * 0.4, hy + 0.08); c.closePath(); fillStroke(c, K.w, 0.03);
   }
+  if (mean) for (const [x, h] of [[-0.1, 0.2], [0.1, 0.2], [0, 0.3]]) { c.beginPath(); c.moveTo(x - 0.07, hy - 0.3); c.lineTo(x, hy - 0.3 - h); c.lineTo(x + 0.07, hy - 0.3); c.closePath(); fillStroke(c, K.w, 0.025); }
+  if (o.crown) for (let i = -2; i <= 2; i++) { const x = i * 0.13, h = 0.3 - Math.abs(i) * 0.06; c.beginPath(); c.moveTo(x - 0.06, hy - 0.3); c.lineTo(x, hy - 0.36 - h); c.lineTo(x + 0.06, hy - 0.3); c.closePath(); fillStroke(c, '#ffcf33', 0.025); if (i === 0) circle(c, 0, hy - 0.42, 0.045, '#ff4fd8', OUT, 0.015); }
   circle(c, 0, hy, 0.38, K.b, OUT, 0.05);
   ellipse(c, 0, hy + 0.17, 0.26, 0.16, K.s, OUT, 0.04);
   circle(c, -0.08, hy + 0.13, 0.03, '#2d2440', null); circle(c, 0.08, hy + 0.13, 0.03, '#2d2440', null);
   for (const s of [-1, 1]) {
     if (o.tired) { c.beginPath(); c.arc(s * 0.15, hy - 0.1, 0.07, 0.2, Math.PI - 0.2); c.strokeStyle = OUT; c.lineWidth = 0.04; c.stroke(); }
-    else {
+    else if (mean) {
+      c.beginPath(); c.moveTo(s * 0.04, hy - 0.12); c.lineTo(s * 0.27, hy - 0.2); c.lineTo(s * 0.23, hy - 0.03); c.closePath(); fillStroke(c, K.eye || '#ffe14d', 0.03);
+      ellipse(c, s * 0.17, hy - 0.1, 0.022, 0.05, '#1a0f24', null);
+      line(c, s * 0.31, hy - 0.3, s * 0.02, hy - 0.16, OUT, 0.06);
+    } else {
       ellipse(c, s * 0.15, hy - 0.1, 0.085, 0.1, '#ffffff', OUT, 0.03);
       circle(c, s * 0.14, hy - 0.08, 0.045, '#2d2440', null); circle(c, s * 0.12, hy - 0.11, 0.015, '#ffffff', null);
       line(c, s * 0.26, hy - 0.26, s * 0.07, hy - 0.2, OUT, 0.04);
     }
   }
-  c.save(); c.globalAlpha *= 0.45; circle(c, -0.25, hy + 0.06, 0.05, '#ff6f91', null); circle(c, 0.25, hy + 0.06, 0.05, '#ff6f91', null); c.restore();
-  if (o.fire) { ellipse(c, 0, hy + 0.3, 0.12, 0.08, '#8a1a2a', OUT, 0.03); circle(c, 0, hy + 0.32, 0.06, '#ffb02e', null); }
+  if (!mean) { c.save(); c.globalAlpha *= 0.45; circle(c, -0.25, hy + 0.06, 0.05, '#ff6f91', null); circle(c, 0.25, hy + 0.06, 0.05, '#ff6f91', null); c.restore(); }
+  if (mean && !o.tired) {
+    if (o.fire) ellipse(c, 0, hy + 0.3, 0.14, 0.09, '#5a0f2a', OUT, 0.03); else { c.beginPath(); c.moveTo(-0.17, hy + 0.31); c.quadraticCurveTo(0, hy + 0.22, 0.17, hy + 0.31); c.strokeStyle = OUT; c.lineWidth = 0.04; c.stroke(); }
+    for (const s of [-1, 1]) { c.beginPath(); c.moveTo(s * 0.13, hy + 0.27); c.lineTo(s * 0.05, hy + 0.26); c.lineTo(s * 0.09, hy + 0.38); c.closePath(); fillStroke(c, '#ffffff', 0.02); }
+    if (o.fire) circle(c, 0, hy + 0.32, 0.06, '#d98cff', null);
+  } else if (o.fire) { ellipse(c, 0, hy + 0.3, 0.12, 0.08, '#8a1a2a', OUT, 0.03); circle(c, 0, hy + 0.32, 0.06, '#ffb02e', null); }
   else if (o.tired) { ellipse(c, 0, hy + 0.3, 0.06, 0.05, '#8a1a2a', OUT, 0.025); }
   else { c.beginPath(); c.moveTo(-0.1, hy + 0.27); c.quadraticCurveTo(0, hy + 0.33, 0.1, hy + 0.27); c.strokeStyle = OUT; c.lineWidth = 0.035; c.stroke(); }
 }
-function drawFireball(c, t, seed) {
-  for (let i = 0; i < 6; i++) { const a = i * 1.05 + t * 7 + seed, r = 0.3 + Math.sin(t * 20 + i) * 0.05; circle(c, Math.cos(a) * r, Math.sin(a) * r - 0.05, 0.13, '#ff7a1a', null); }
-  circle(c, 0, 0, 0.32, '#ff9f1c', OUT, 0.04);
-  circle(c, -0.04, -0.04, 0.17, '#ffe14d', null);
+function drawFireball(c, t, seed, pur) {
+  for (let i = 0; i < 6; i++) { const a = i * 1.05 + t * 7 + seed, r = 0.3 + Math.sin(t * 20 + i) * 0.05; circle(c, Math.cos(a) * r, Math.sin(a) * r - 0.05, 0.13, pur ? '#a63dff' : '#ff7a1a', null); }
+  circle(c, 0, 0, 0.32, pur ? '#c77dff' : '#ff9f1c', OUT, 0.04);
+  circle(c, -0.04, -0.04, 0.17, pur ? '#ffd6ff' : '#ffe14d', null);
 }
 function drawLavaPit(c, t) {
   ellipse(c, 0, -0.02, 0.8, 0.3, '#3a2a40', null);
@@ -3165,6 +3406,7 @@ function drawSky() {
     ctx.fillStyle = LV.cloud || 'rgba(255,255,255,0.92)';
     for (const [ox, oy, rr] of [[0, 0, 1], [1.1, -0.45, 1.2], [2.3, 0, 0.95], [0.6, 0.35, 0.8], [1.7, 0.35, 0.85]]) { ctx.beginPath(); ctx.arc(x + ox * r, y + oy * r, rr * r, 0, 7); ctx.fill(); }
   }
+  if (LV.void) drawVoid();
   // hills
   const par = -camX * 8;
   hills(LV.hillFar, horizon - H * 0.07, H * 0.05, 0.004, par * 0.4, 1.3);
@@ -3282,6 +3524,9 @@ function drawThing(o) {
       else if (o.type === 'flag') drawFlagPole(ctx, t, o.seed);
       else if (o.type === 'srock') drawRock(ctx, 0.8 * o.big, '#5a4a66');
       else if (o.type === 'geyser') drawGeyser(ctx, t, o.seed);
+      else if (o.type === 'crystal') drawCrystals(ctx, o.big, o.seed, t);
+      else if (o.type === 'vspire') drawSpire(ctx, o.big, o.seed, t);
+      else if (o.type === 'visle') { ctx.translate(0, -o.h - Math.sin(t + o.seed) * 0.15); drawIsle(ctx, o.big, o.seed); }
     });
     return;
   }
@@ -3339,6 +3584,11 @@ function drawThing(o) {
       case 'bird': ctx.translate(0, -o.y - Math.sin(t * 6 + o.seed) * 0.1); ctx.scale(1.5, 1.5); drawBird(ctx, t + o.seed); break;
       case 'skydragon': ctx.translate(0, -o.y - Math.sin(t * 3 + o.seed) * 0.1); ctx.scale(0.75, 0.75); drawDragon(ctx, t + o.seed, { fire: o.fireT > 0, skin: DRAGON_SKY }); break;
       case 'skyfire': ctx.translate(0, -o.y); drawFireball(ctx, t, o.seed); break;
+      case 'vspike': shadow(ctx, 0.75); drawJagged(ctx, 2.0, 0.62, o.seed, t); break;
+      case 'vrock': shadow(ctx, 0.75); drawJagged(ctx, 0.62, 0.7, o.seed, t); break;
+      case 'vdragon': ctx.translate(0, -o.y - Math.sin(t * 3 + o.seed) * 0.08); ctx.scale(0.66, 0.66); drawDragon(ctx, t + o.seed, { fire: o.fireT > 0, skin: DRAGON_VOID, mean: true, glow: 'rgba(190,120,255,0.4)' }); break;
+      case 'vlow': ctx.save(); ctx.globalAlpha *= 0.5; shadow(ctx, 0.8); ctx.restore(); ctx.translate(0, -o.y - Math.sin(t * 5 + o.seed) * 0.06); ctx.scale(0.6, 0.6); drawDragon(ctx, t * 1.6 + o.seed, { skin: DRAGON_LOW, mean: true, glow: 'rgba(255,110,200,0.4)' }); break;
+      case 'vfire': ctx.save(); ctx.fillStyle = 'rgba(190,80,255,0.35)'; ctx.beginPath(); ctx.ellipse(0, 0, 0.5, 0.12, 0, 0, 7); ctx.fill(); ctx.restore(); ctx.translate(0, -o.y); drawFireball(ctx, t, o.seed, true); break;
       case 'heartUp': ctx.translate(0, -o.y - Math.sin(t * 4) * 0.1); ctx.scale(0.75, 0.75); drawBigHeart(ctx, t); break;
       case 'barrel': shadow(ctx, 0.6); drawBarrel(ctx); break;
       case 'banner': shadow(ctx, 0.9); drawBanner(ctx, t); break;
@@ -3362,6 +3612,10 @@ function drawThing(o) {
   if (o.type === 'swoop' && o.z < 48 && o.z > 1) label(xw, o.z, 2.3, 'DRAGON!', '#ff3b3b');
   if (o.type === 'fcloud' && !o.done && o.z < 40 && o.z > 1) label(xw, o.z, o.y + 1.0, 'Go over!', '#29b6c9');
   if (o.type === 'plane' && !o.done && o.z < 40 && o.z > 1) label(xw, o.z, o.y + 1.1, 'Go under!', '#ff5f5f');
+  if (o.type === 'vspike' && !o.done && o.z < 40 && o.z > 1) label(xw, o.z, 2.4, 'Dodge!', '#c77dff');
+  if (o.type === 'vrock' && !o.done && o.z < 40 && o.z > 1) label(xw, o.z, 1.05, 'Jump!', '#ff4f9a');
+  if (o.type === 'vlow' && !o.done && o.z < 40 && o.z > 1) label(xw, o.z, o.y + 1.0, 'Duck!', '#ff4f9a');
+  if (o.type === 'vdragon' && !o.done && o.z < 45 && o.z > 1) label(xw, o.z, o.y + 1.1, 'Dragon!', '#ff3b3b');
   if (o.type === 'skydragon' && !o.done && o.z < 45 && o.z > 1) label(xw, o.z, o.y + 1.3, 'Dragon!', '#ff3b3b');
   if (o.type === 'heartUp' && !o.done && o.z < 40) label(xw, o.z, o.y + 1.0, '+1 life', '#ff4f6d');
   if (o.type === 'archer' && !o.shot && o.z < 50 && o.z > 1) label(xw, o.z, 2.8, 'Archer!', '#ff9f1c');
@@ -3497,6 +3751,7 @@ function render() {
   if (water) drawWaterOverlay();
   if (S.boss) drawBossUi();
   if (S.fly) drawFlyUi();
+  if (S.dim) drawDimUi();
   drawParticles();
   ctx.restore();
 }
@@ -4034,6 +4289,10 @@ const SONGS = {
     arp: [0, 1, 2, 3, 4, 3, 2, 1], mel: [4, _, _, _, 5, _, 4, _, 3, _, _, _, 2, _, _, _], kick: 'x.......x.......', hat: '..x...x...x...x.' },
   rainbow: { bpm: 150, chords: [[40, 'm'], [36, 'M'], [43, 'M'], [38, 'M']], bass: 'r.ro.r.ro.r.ro.r', lead: 'square',
     mel: [3, _, 4, _, 5, _, 4, 3, 4, _, _, _, 5, _, 6, _], kick: 'x...x...x...x.x.', snare: '....x.......x...', hat: 'x.xxx.xxx.xxx.xx' },
+  dim: { bpm: 112, chords: [[38, 'm'], [41, 'm'], [34, 'M'], [37, 'M']], bass: 'r...r...5...r.o.', bassWave: 'sine', lead: 'triangle', pad: true,
+    arp: [0, 2, 1, 3, 0, 2, 4, 3], mel: [4, _, _, 3, _, _, 2, _, _, _, 1, _, 2, _, _, _, 4, _, _, 5, _, _, 6, _, 5, _, 4, _, _, _, _, _], kick: 'x.......x..x....', snare: '............x...', hat: '..x...x...x...x.' },
+  mother: { bpm: 164, chords: [[43, 'm'], [39, 'M'], [41, 'M'], [38, '7']], bass: 'r.ror.ror.ror.r5', lead: 'sawtooth', stab: 'x.....x.....x...',
+    mel: [5, _, 6, _, 5, _, 4, _, 3, _, 4, _, 5, _, _, _, 7, _, 6, _, 5, _, 6, _, 4, _, _, _, 3, _, _, _], kick: 'x.x...x.x.x...x.', snare: '....x.......x..x', hat: 'xxxxxxxxxxxxxxxx' },
   diner: { bpm: 104, swing: true, chords: [[41, 'M7'], [38, 'm7'], [43, 'm7'], [36, '7']], bass: 'r...5...o...5...', lead: 'triangle', stab: '......x.......x.',
     mel: [4, _, _, 3, _, 2, _, _, 5, _, 4, _, _, _, _, _], kick: 'x.......x.......', snare: '....x.......x...', hat: 'x.x.x.x.x.x.x.x.' },
 };
@@ -4087,7 +4346,8 @@ function musicTheme() {
   if (S.mode === 'start' || !ui.maker.hidden) return 'home';
   if (level.id === 'castle') {
     if (S.fly) return 'sky';
-    if (S.boss) { const ph = S.boss.phase; if (ph === 'glide') return 'party'; if (ph === 'boom' || ph === 'land') return 'sky'; return S.boss.round === 2 ? 'rainbow' : 'boss'; }
+    if (S.dim) return 'dim';
+    if (S.boss) { const ph = S.boss.phase; if (ph === 'glide') return 'party'; if (ph === 'boom' || ph === 'land') return 'sky'; return S.boss.round === 3 ? 'mother' : S.boss.round === 2 ? 'rainbow' : 'boss'; }
     return S.endless || S.mode === 'play' ? 'castle' : 'party';
   }
   return level.id;
@@ -4131,7 +4391,7 @@ function frame(now) {
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
-window.__fmf = { get S() { return S; }, get D() { return D; }, get MUS() { return MUS; }, get audio() { return audio; }, toMenu: () => toMenu() };
+window.__fmf = { startBoss: r => startBoss(r), startDim: () => startDim(), bossHit: (n) => bossHit(n, "test", "#000"), get S() { return S; }, get D() { return D; }, get MUS() { return MUS; }, get audio() { return audio; }, toMenu: () => toMenu() };
 })();
 </script>
 
