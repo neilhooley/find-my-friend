@@ -450,6 +450,7 @@ const GRAVITY = 26;
 const JUMP_V = 9.2;
 const SLIDE_TIME = 0.75;
 const MAX_LIVES = 3;
+function maxLives() { return level.lives || MAX_LIVES; }
 const TIME_LIMIT = 90;    // seconds to find your friend
 const CLOCK_BONUS = 5;
 const OUT = '#2d2440';   // cartoon outline colour
@@ -600,7 +601,7 @@ const LEVELS = {
     id: 'castle', num: 5, base: 0.14, kind: 'land', name: 'The Castle', goal: 1300, next: null, keepLabel: 'Keep running',
     story: 'Your friend is waiting past the lava castle! Put on your armor, dodge the knights and their arrows, and run to the castle.',
     winStory: 'You beat the dragon and glided down to the party with your friend!',
-    how: [['⟷', 'Dodge knights, rocks and the swooping dragon. Some knights swing their swords into the next lane!'], ['↓', 'Swipe down to raise your shield. It blocks arrows and lava balls, and you duck under banners'], ['↑', 'Swipe up to jump over lava pits and barrels'], ['🐉', 'Inside the castle, block lava balls back at the dragon, and jump to hit it with your sword when it gets tired'], ['🪂', 'Then glide down to the party!']],
+    how: [['⟷', 'Dodge knights, rocks and the swooping dragon. Some knights swing their swords into the next lane!'], ['↓', 'Swipe down to raise your shield. It blocks arrows and lava balls, and you duck under banners'], ['↑', 'Swipe up to jump over lava pits and barrels'], ['🐉', 'Inside the castle, block lava balls back at the dragon, and jump to hit it with your sword when it gets tired'], ['❤️', 'Grab floating hearts to win back a life. The dragon drops one each time it gets tired!'], ['🪂', 'Then glide down to the party!']],
     patterns: [['one', 20, 0], ['two', 18, 0.12], ['jump1', 13, 0], ['slide1', 11, 0], ['jumpAll', 5, 0.3], ['slideAll', 4, 0.35], ['mixed', 8, 0.4], ['knightWalk', 9, 0.05], ['swoop', 8, 0.1], ['swingKnight', 11, 0.06], ['archer', 11, 0.04]],
     dodge: ['knight', 'knight', 'rock'], jumpers: ['lavapit', 'barrel'], jumpAll: 'lavapit', slider: 'banner',
     sky: ['#2a1238', '#6a2346', '#ff7a3a'],
@@ -691,7 +692,7 @@ function bankCoins() {
 let S;
 function newState(mode) {
   return {
-    mode, t: 0, dist: 0, speed: 8, stars: 0, lives: MAX_LIVES, dogsPetted: 0,
+    mode, t: 0, dist: 0, speed: 8, stars: 0, lives: maxLives(), dogsPetted: 0,
     objs: [], scen: [], parts: [], pops: [],
     p: { lane: 0, x: 0, y: 0, vy: 0, slideT: 0, inv: 0, phase: 0, slideQueued: false },
     nextRow: 45, lastRow: 0, pending: null, shake: 0, friend: null, endless: false, cheerT: 0, slow: 0,
@@ -726,6 +727,7 @@ function addObj(type, lane, extra = {}) {
 let rowZ = SPAWN_Z;  // where the next row appears (closer for the first rows of a run)
 const COIN_CHANCE = 0.3;   // only some rows have coins, so the shop takes a few runs
 function addStars(lane, n = 5, arc = false, z = rowZ) {
+  if (level.id === 'castle' && !S.endless && S.lives < maxLives() && Math.random() < 0.16) { S.objs.push({ type: 'heartUp', lane, lx: lane, z, y: arc ? 1.2 : 0.6, vz: 0, done: false, seed: 0 }); return; }
   if (Math.random() > COIN_CHANCE) {
     if (!S.endless && Math.random() < 0.22) S.objs.push({ type: 'clock', lane, lx: lane, z: z + 1, y: arc ? 1.4 : 0.55, vz: 0, done: false, seed: 0 });
     return;
@@ -961,7 +963,7 @@ function updateHud() {
   if (key === lastHud) return; lastHud = key;
   ui.stars.textContent = S.stars;
   ui.dist.textContent = Math.floor(S.dist);
-  let h = ''; for (let i = 0; i < MAX_LIVES; i++) h += HEART(i < S.lives); ui.hearts.innerHTML = h;
+  let h = ''; for (let i = 0; i < maxLives(); i++) h += HEART(i < S.lives); ui.hearts.innerHTML = h;
   const goal = level.goal;
   const pr = clamp(S.dist / goal, 0, 1) * 100;
   ui.fill.style.width = pr + '%'; ui.dot.style.left = pr + '%';
@@ -1027,7 +1029,7 @@ function setLevel(id) {
   $('rideBox').hidden = level.id !== 'drive';
   $('friendPod').hidden = level.id === 'drive';
   buildRide();
-  const how = level.how.concat([['♥', 'You have 3 lives. Bumping into something takes 1 away.'], ['⏱', 'Find your friend before the clock runs out. Grab clocks for extra time!'], ['💖', 'Missing a heart? Get through the rainbow Heart Challenge without bumping anything to win one back!'], ['🪙', 'Collect coins to unlock new places and buy costumes in the shop!']]);
+  const how = level.how.concat([['♥', `You have ${maxLives()} lives. Bumping into something takes 1 away.`], ['⏱', 'Find your friend before the clock runs out. Grab clocks for extra time!'], ['💖', 'Missing a heart? Get through the rainbow Heart Challenge without bumping anything to win one back!'], ['🪙', 'Collect coins to unlock new places and buy costumes in the shop!']]);
   $('howBox').innerHTML = '';
   for (const [icon, text] of how) { const d = document.createElement('div'); const b = document.createElement('b'); b.textContent = icon; const sp = document.createElement('span'); sp.textContent = text; d.append(b, sp); $('howBox').appendChild(d); }
   $('bestLine').textContent = bestLine();
@@ -1164,6 +1166,12 @@ function startBoss() {
   S.p.slideT = 0; ROAR();
   popup('Inside the castle... the dragon!', W / 2, H * 0.34, '#ff3b3b');
 }
+function bossHeart() {
+  if (S.lives >= maxLives()) return;
+  const lane = pick([-1, 0, 1].filter(l => l !== S.p.lane));
+  S.objs.push({ type: 'heartUp', lane, lx: lane, z: 0.3, y: 0.6, vz: 0, done: false, seed: 0, ttl: 5, fixed: true });
+  popup('Grab the heart!', W / 2, H * 0.36, '#ff4f6d');
+}
 function bossHit(n, txt, col) {
   const B = S.boss; if (!B || B.phase === 'boom' || B.phase === 'glide') return;
   B.hp = Math.max(0, B.hp - n); B.hurtT = 0.45; CLANG(); S.shake = 0.2;
@@ -1193,7 +1201,7 @@ function bossTick(dt) {
       B.aimed = false;
       if (B.volley <= 0) {
         if (B.hp <= 8 && !B.charged) { B.phase = 'charge'; B.charged = true; B.cl = p.lane; B.t = 0; ROAR(); popup('The dragon is charging! Move!', W / 2, H * 0.32, '#ff3b3b'); }
-        else { B.phase = 'tired'; B.t = 0; B.landT = 0; popup('The dragon is tired!', W / 2, H * 0.3, '#8a4dff'); }
+        else { B.phase = 'tired'; B.t = 0; B.landT = 0; popup('The dragon is tired!', W / 2, H * 0.3, '#8a4dff'); bossHeart(); }
         return;
       }
       B.fireT = 0.35; WHOOSH();
@@ -1210,7 +1218,7 @@ function bossTick(dt) {
     else {
       const before = B.z; B.z -= 32 * dt;
       if (before > 0 && B.z <= 0 && live && Math.round(p.x) === B.cl && p.inv <= 0) { hurt(); const pp = proj(p.x * LANE, 0); popup('The dragon bumped you!', pp.x, pp.y - 3.1 * pp.s, '#ff3b3b'); }
-      if (B.z < -5) { B.z = 30; B.y = BOSS_Y + 1; B.x = 0; B.phase = 'tired'; B.t = 0; B.landT = 0; popup('Now it is tired!', W / 2, H * 0.3, '#8a4dff'); }
+      if (B.z < -5) { B.z = 30; B.y = BOSS_Y + 1; B.x = 0; B.phase = 'tired'; B.t = 0; B.landT = 0; popup('Now it is tired!', W / 2, H * 0.3, '#8a4dff'); bossHeart(); }
     }
   } else if (B.phase === 'tired') {
     B.x = lerp(B.x, 0, clamp(dt * 3, 0, 1));
@@ -1373,7 +1381,7 @@ function update(dt) {
   if (playing) {
     const roomForFriend = S.endless || S.dist < friendAt - SPAWN_Z - 14;
     const C = S.chal;
-    if (!C && !S.hasPresent && S.lives < MAX_LIVES && S.dist > S.chalAt && S.dist >= S.nextRow && (S.endless || S.dist < friendAt - SPAWN_Z - 200)) startChallenge();
+    if (!C && !S.hasPresent && S.lives < maxLives() && S.dist > S.chalAt && S.dist >= S.nextRow && (S.endless || S.dist < friendAt - SPAWN_Z - 200)) startChallenge();
     else if (C && !C.heart && S.dist >= S.nextRow) challengeRow();
     else if (roomForFriend && !S.hasPresent && S.dist >= S.nextRow && !(C && !C.heart)) spawnRow();
     for (const o of S.objs) if (o.type === 'giftTable' && S.hasPresent && !o.missed && o.z < -0.8) {
@@ -1390,7 +1398,7 @@ function update(dt) {
 
   // objects
   for (const o of S.objs) {
-    o.z -= move + (S.speed > 0.5 && o.type !== 'fireball' ? o.vz * dt : 0);
+    if (!o.fixed) o.z -= move + (S.speed > 0.5 && o.type !== 'fireball' ? o.vz * dt : 0);
     if (o.type === 'fireball') { o.z -= o.vz * dt; o.y = lerp(0.7, o.y0, clamp(o.z / o.z0, 0, 1)); }
     if (o.type === 'fireball' && o.parried && !o.done && S.boss && o.z >= S.boss.z - 0.5) { o.done = true; bossHit(1, 'Blocked it back! -1', '#29b6c9'); }
     if (o.type === 'archer' && !o.shot && o.z < 32 && o.z > 4 && playing) { o.shot = true; TWANG(); const tl = S.p.lane; S.objs.push({ type: 'arrow', lane: tl, lx: o.lx, tl, z: o.z - 0.5, y: 1.15, vz: S.speed * 0.6, done: false, seed: 0, dir: Math.sign(o.lx) }); }
@@ -1432,6 +1440,11 @@ function update(dt) {
         else if (p.y > 1.3) { }
         else if (o.z < 0.5) { o.done = true; if (p.inv <= 0) { hurt(); const pp = proj(p.x * LANE, 0); popup('Ouch, hot!', pp.x, pp.y - 3.1 * pp.s, '#ff7a1a'); burst(pp.x, pp.y - 1.2 * pp.s, 'spark', 14); } }
       }
+      if (o.type === 'heartUp' && o.z < 0.8 && o.z > -0.6 && Math.abs(o.lx - p.x) < 0.55 && Math.abs(o.y - (p.y + 0.6)) < 1.1) {
+        o.done = true; S.lives = Math.min(maxLives(), S.lives + 1); SFX.pet();
+        const pp = proj(o.lx * LANE, 0); popup('+1 life!', pp.x, pp.y - 2.4 * pp.s, '#ff4f6d'); for (let i = 0; i < 2; i++) burst(pp.x, pp.y - pp.s, 'heart', 8);
+      }
+      if (o.type === 'heartUp' && o.ttl !== undefined) { o.ttl -= dt; if (o.ttl <= 0) o.done = true; }
       if (o.type === 'arrow' && o.z < 0.6 && o.z > -0.6 && Math.abs(o.lx - p.x) < 0.55) {
         o.done = true; const pp = proj(p.x * LANE, 0);
         if (p.slideT > 0) { CLANG(); popup('Blocked!', pp.x, pp.y - 3.1 * pp.s, '#29b6c9'); }
@@ -1462,10 +1475,10 @@ function update(dt) {
         }
         continue;
       }
-      if (t === 'friend' || t === 'gate' || t === 'fireball' || t === 'arrow' || t === 'archer') continue;
+      if (t === 'friend' || t === 'gate' || t === 'fireball' || t === 'arrow' || t === 'archer' || t === 'heartUp') continue;
       if (t === 'bigHeart') {
         if (Math.abs(o.y - (p.y + 0.6)) < 1.1) {
-          o.done = true; S.lives = Math.min(MAX_LIVES, S.lives + 1); SFX.pet();
+          o.done = true; S.lives = Math.min(maxLives(), S.lives + 1); SFX.pet();
           const pp = proj(o.lx * LANE, o.z);
           popup('You did it! +1 heart', pp.x, pp.y - 2.4 * pp.s, '#ff4f6d');
           for (let i = 0; i < 3; i++) burst(pp.x, pp.y - pp.s, 'heart', 8);
@@ -1476,7 +1489,7 @@ function update(dt) {
       if (t === 'niceDog') {
         o.done = true; o.happy = 1.5; S.dogsPetted++; SFX.pet();
         const pp = proj(o.lx * LANE, 0);
-        if (S.lives < MAX_LIVES) { S.lives++; popup('Good dog! +1 heart', pp.x, pp.y - 2.2 * pp.s, '#ff4f6d'); }
+        if (S.lives < maxLives()) { S.lives++; popup('Good dog! +1 heart', pp.x, pp.y - 2.2 * pp.s, '#ff4f6d'); }
         else { S.stars += 3; popup('Good dog! +3 coins', pp.x, pp.y - 2.2 * pp.s, '#ff4f9a'); }
         burst(pp.x, pp.y - pp.s, 'heart', 8);
         continue;
@@ -3130,7 +3143,7 @@ function drawThing(o) {
   }
   if (o.kind === 'player') { drawPlayer(); return; }
   if (o.kind === 'boss') { drawBoss(); return; }
-  if (o.done && o.type === 'fireball') return;
+  if (o.done && (o.type === 'fireball' || o.type === 'heartUp')) return;
   if (o.done && o.type === 'bigHeart') return;
   if (o.done && (o.type === 'star' || o.type === 'clock')) return;
   const xw = o.lx * LANE;
@@ -3177,6 +3190,7 @@ function drawThing(o) {
       case 'archer': drawPlatform(ctx); ctx.translate(0, -0.5); shadow(ctx, 0.35); if (o.lx < 0) ctx.scale(-1, 1); drawPerson(ctx, KNIGHT_LOOK, { view: 'front', pose: 'stand', knight: o.shot ? Object.assign({}, ARCHER, { shot: true }) : ARCHER }); break;
       case 'arrow': ctx.translate(0, -o.y); ctx.scale(1.3, 1.3); drawArrow(ctx, o.dir); break;
       case 'lavapit': drawLavaPit(ctx, t + o.seed); break;
+      case 'heartUp': ctx.translate(0, -o.y - Math.sin(t * 4) * 0.1); ctx.scale(0.75, 0.75); drawBigHeart(ctx, t); break;
       case 'barrel': shadow(ctx, 0.6); drawBarrel(ctx); break;
       case 'banner': shadow(ctx, 0.9); drawBanner(ctx, t); break;
       case 'rock': shadow(ctx, 0.7); drawRock(ctx, 1.1, '#6e6086'); break;
@@ -3197,6 +3211,7 @@ function drawThing(o) {
   // labels drawn in screen space
   if (o.type === 'meanDog' && o.z < 40 && o.z > 1) label(xw, o.z, 1.45, 'GRRR!', '#ff3b3b');
   if (o.type === 'swoop' && o.z < 48 && o.z > 1) label(xw, o.z, 2.3, 'DRAGON!', '#ff3b3b');
+  if (o.type === 'heartUp' && !o.done && o.z < 40) label(xw, o.z, o.y + 1.0, '+1 life', '#ff4f6d');
   if (o.type === 'archer' && !o.shot && o.z < 50 && o.z > 1) label(xw, o.z, 2.8, 'Archer!', '#ff9f1c');
   if (o.type === 'knight' && o.swing && o.z < 18 && o.z > 1) label(xw, o.z, 2.25, 'Hyah!', '#ff3b3b');
   if (o.type === 'knight' && o.walk && o.z < 30 && o.z > 1) label(xw, o.z, 2.25, 'Halt!', '#4a4462');
