@@ -290,6 +290,7 @@ label.namefield input:focus-visible { box-shadow: 0 0 0 4px var(--sun); }
         <button class="area" id="areaPark" role="radio" data-area="park"><span class="em" aria-hidden="true">🌳</span><span class="nm">Park</span></button>
         <button class="area" id="areaDrive" role="radio" data-area="drive"><span class="em" aria-hidden="true">🚗</span><span class="nm">Driving</span><span class="lock" aria-hidden="true">🔒</span></button>
         <button class="area" id="areaParty" role="radio" data-area="party"><span class="em" aria-hidden="true">🎉</span><span class="nm">Party</span><span class="lock" aria-hidden="true">🔒</span></button>
+        <button class="area" id="areaCastle" role="radio" data-area="castle"><span class="em" aria-hidden="true">🏰</span><span class="nm">Castle</span><span class="lock" aria-hidden="true">🔒</span></button>
         <div class="locknote" id="lockNote" aria-live="polite"></div>
         <button class="area cafe" id="cafeBtn"><span class="em" aria-hidden="true">🍳</span><span class="nm">Mini game</span></button>
         
@@ -584,9 +585,9 @@ const LEVELS = {
     pathA: '#5d6170', pathB: '#575b6a', pathEdge: '#d4d8e2', laneMark: '#ffffff',
   },
   party: {
-    id: 'party', num: 4, base: 0.14, kind: 'land', name: 'The Party', goal: 1200, next: null, keepLabel: 'Keep partying',
+    id: 'party', num: 4, base: 0.14, kind: 'land', name: 'The Party', goal: 1200, next: 'castle', keepLabel: 'Keep partying',
     story: "You and your friend are going to a birthday party! Drop off your present, then find your friend.",
-    winStory: 'Party time with your friend! The big race is coming soon.',
+    winStory: 'Party time with your friend! Next: the castle, if you dare!',
     how: [['🎁', 'You start with a present. Steer to the gift table to put it down!'], ['↓', 'Swipe down to slide under the piñata'], ['↑', 'Swipe up to bounce over the bounce house'], ['⟷', 'Dodge the waving person and the cake. No cake without your friend!']],
     patterns: [['one', 24, 0], ['two', 22, 0.12], ['jump1', 15, 0], ['slide1', 15, 0], ['jumpAll', 6, 0.3], ['slideAll', 6, 0.35], ['mixed', 10, 0.4]],
     dodge: ['waver', 'cake'], jumpers: ['bounce'], jumpAll: 'bounce', slider: 'pinata',
@@ -594,6 +595,18 @@ const LEVELS = {
     hillFar: '#b5e3a0', hillNear: '#94d982', treeLine: '#5dbb6a',
     grassA: '#8fdc66', grassB: '#83d35b',
     pathA: '#ffd9ec', pathB: '#efdcff', pathEdge: '#ff8fc4', laneMark: 'rgba(255,255,255,0.8)',
+  },
+  castle: {
+    id: 'castle', num: 5, base: 0.14, kind: 'land', name: 'The Castle', goal: 1300, next: null, keepLabel: 'Keep running',
+    story: 'Your friend is waiting past the castle! Put on your armor, dodge the dark knights and the dragon, and run to the castle.',
+    winStory: 'You beat the dragon and glided down to the party with your friend!',
+    how: [['⟷', 'Swipe left or right to dodge dark knights, rocks and the swooping dragon'], ['↑', 'Swipe up to jump over barrels'], ['↓', 'Swipe down to slide under the flag banners'], ['🐉', 'At the castle, dodge the fireballs. When the dragon gets tired, swipe up to slay it!'], ['🪂', 'Then glide down to the party!']],
+    patterns: [['one', 22, 0], ['two', 20, 0.12], ['jump1', 13, 0], ['slide1', 13, 0], ['jumpAll', 5, 0.3], ['slideAll', 5, 0.35], ['mixed', 8, 0.4], ['knightWalk', 10, 0.05], ['swoop', 9, 0.1]],
+    dodge: ['knight', 'knight', 'rock'], jumpers: ['barrel'], jumpAll: 'barrel', slider: 'banner',
+    sky: ['#9d8bff', '#cdbfff', '#ffe3f1'],
+    hillFar: '#93c98a', hillNear: '#79b96e', treeLine: '#4f9a52',
+    grassA: '#7cc95e', grassB: '#70bd54',
+    pathA: '#c9c2d8', pathB: '#bdb5cf', pathEdge: '#8a8299', laneMark: 'rgba(255,255,255,0.5)',
   },
 };
 let level = LEVELS[store('fmf_area')] || LEVELS.park;
@@ -689,8 +702,8 @@ S = newState('start');
 const clouds = Array.from({ length: 6 }, (_, i) => ({ x: Math.random(), y: rand(0.05, 0.6), s: rand(0.6, 1.3), v: rand(0.004, 0.012) }));
 
 // ---------- Spawning ----------
-const PRE_GAP = { biker: 30, meanDog: 34, hairRoll: 30 };   // fast movers need room in front
-const POST_GAP = { jogger: 30, lights: 32 };              // slow movers need room behind
+const PRE_GAP = { biker: 30, meanDog: 34, hairRoll: 30, swoop: 36 };   // fast movers need room in front
+const POST_GAP = { jogger: 30, lights: 32, knightWalk: 30 };              // slow movers need room behind
 
 function difficulty() { return clamp((level.base || 0) + S.dist / 1600, 0, 1); }
 function choosePattern(d) {
@@ -778,6 +791,12 @@ function spawnRow() {
     case 'hairRoll':
       addObj('hair', L[0], { vz: sp * 0.25, rolling: true }); addStars(L[1], 5);
       break;
+    case 'knightWalk':
+      addObj('knight', L[0], { vz: -sp * 0.15, walk: true }); addStars(L[2], 5);
+      break;
+    case 'swoop':
+      addObj('swoop', L[0], { vz: sp * 0.6, y: 1.25 }); addStars(L[1], 5);
+      break;
     case 'meanDog':
       addObj('meanDog', L[0], { vz: sp * 0.3, turned: false, tl: L[0], barked: false });
       break;
@@ -824,7 +843,17 @@ function spawnScenery(z) {
     S.scen.push({ type, x, z, seed: Math.random() * 10, big: rand(0.9, 1.2) });
     return;
   }
-  if (level.id === 'party') {
+  if (level.id === 'castle' && !(S.boss && S.boss.phase === 'glide')) {
+    if (r < 0.14) { type = 'tower'; x = side * rand(6, 9); }
+    else if (r < 0.34) { type = 'torch'; x = side * 3.3; }
+    else if (r < 0.5) { type = 'flag'; x = side * rand(3.6, 5); }
+    else if (r < 0.66) { type = 'srock'; x = side * rand(3.5, 6.5); }
+    else if (r < 0.82) { type = pick(['tree1', 'tree2']); x = side * rand(4.5, 8.5); }
+    else { type = 'bush'; x = side * rand(3.4, 6.5); }
+    S.scen.push({ type, x, z, seed: Math.random() * 10, big: rand(0.9, 1.2) });
+    return;
+  }
+  if (level.id === 'party' || level.id === 'castle') {
     if (r < 0.12) { type = 'bunting'; x = 0; }
     else if (r < 0.45) { type = 'balloons'; x = side * rand(3.0, 6.5); }
     else if (r < 0.7) { type = 'bush'; x = side * rand(3.4, 6.5); }
@@ -854,6 +883,7 @@ fillScenery();
 function act(a) {
   if (S.mode === 'arrive') { if (a === 'up' && S.speed < 2) getOut(); return; }
   if (S.mode !== 'play') return;
+  if (S.boss && (S.boss.phase === 'boom' || (S.boss.phase === 'glide' && (a === 'up' || a === 'down')))) return;
   if (level.id === 'drive' && (a === 'up' || a === 'down')) return;
   const p = S.p;
   if (a === 'left' && p.lane > -1) { p.lane--; SFX.move(); }
@@ -951,7 +981,7 @@ function buildRide() {
   });
 }
 // Places: the park is free, the others are unlocked with coins
-const PLACE_PRICE = { park: 0, pool: 150, drive: 100, party: 150 };
+const PLACE_PRICE = { park: 0, pool: 150, drive: 100, party: 150, castle: 150 };
 let OPEN_PLACES = new Set((() => { try { return JSON.parse(store('fmf_places') || '["park"]'); } catch (e) { return ['park']; } })());
 OPEN_PLACES.add('park');
 const isOpen = id => OPEN_PLACES.has(id);
@@ -1054,7 +1084,7 @@ $('resumeBtn').onclick = togglePause;
 $('pauseBtn').onclick = togglePause;
 $('soundBtn').onclick = () => { soundOn = !soundOn; store('fmf_sound', soundOn ? 'on' : 'off'); setSoundIcon(); initAudio(); };
 $('keepBtn').onclick = () => {
-  S.endless = true; S.friend = null; S.objs = S.objs.filter(o => o.type !== 'friend');
+  S.endless = true; S.friend = null; S.boss = null; S.p.glide = false; S.p.y = 0; S.p.vy = 0; S.objs = S.objs.filter(o => o.type !== 'friend');
   S.mode = 'play'; S.nextRow = S.dist + 12; S.lastRow = S.dist;
   showOnly(null); lastHud = ''; updateHud();
   popup(level.kind === 'water' ? 'Endless swim! Go go go!' : 'Endless run! Go go go!', W / 2, H * 0.4, '#ff4f9a');
@@ -1110,6 +1140,103 @@ function burst(x, y, kind, n) {
   for (let i = 0; i < n; i++) S.parts.push({ x, y, vx: rand(-160, 160), vy: rand(-320, -80), life: rand(0.6, 1.1), kind, rot: rand(0, 6) });
 }
 
+// ---------- Castle boss: dodge fireballs, slay the tired dragon, glide to the party ----------
+const BOSS_SHOTS = 10, BOSS_Z = 12, BOSS_Y = 2.3, BOSS_K = 1.8;
+const BOOM = () => { tone(110, 0.7, 'sawtooth', 0.18, 35); tone(70, 0.9, 'square', 0.12, 30, 0.05); setTimeout(() => SFX.win(), 450); };
+const ROAR = () => { tone(180, 0.5, 'sawtooth', 0.09, 90); tone(140, 0.6, 'sawtooth', 0.07, 70, 0.12); };
+const WHOOSH = () => tone(420, 0.35, 'sawtooth', 0.05, 140);
+function startBoss() {
+  S.boss = { phase: 'fight', x: 0, tl: 0, z: BOSS_Z + 14, y: BOSS_Y + 1.5, energy: BOSS_SHOTS, next: 2.0, fireT: 0, t: 0, wakeT: 0, boomT: 0 };
+  S.objs = S.objs.filter(o => o.z < 0);
+  S.p.slideT = 0; ROAR();
+  popup('The dragon! Dodge the fireballs!', W / 2, H * 0.34, '#ff3b3b');
+}
+function bossTick(dt) {
+  const B = S.boss, p = S.p; B.t += dt;
+  if (B.phase === 'fight') {
+    B.z = lerp(B.z, BOSS_Z, clamp(dt * 2, 0, 1)); B.y = lerp(B.y, BOSS_Y + Math.sin(B.t * 2) * 0.2, clamp(dt * 3, 0, 1));
+    B.x = lerp(B.x, B.tl, clamp(dt * 5, 0, 1));
+    if (B.fireT > 0) B.fireT -= dt;
+    B.next -= dt;
+    if (B.next < 0.45 && !B.aimed) { B.aimed = true; B.tl = Math.random() < 0.6 ? p.lane : pick([-1, 0, 1]); }
+    if (B.next <= 0 && S.mode === 'play') {
+      B.aimed = false; B.fireT = 0.35; WHOOSH();
+      const lanes = [Math.round(B.tl)];
+      if (B.energy <= BOSS_SHOTS / 2 && Math.random() < 0.45) lanes.push(pick([-1, 0, 1].filter(l => l !== lanes[0])));
+      for (const l of lanes) S.objs.push({ type: 'fireball', lane: l, lx: l, z: B.z - 1, z0: B.z - 1, y: B.y, y0: B.y, vz: 13, done: false, seed: Math.random() * 6 });
+      B.energy--; B.next = lerp(1.05, 1.5, B.energy / BOSS_SHOTS);
+      if (B.energy <= 0) { B.phase = 'tired'; B.t = 0; B.next = 99; popup('The dragon is tired!', W / 2, H * 0.3, '#8a4dff'); }
+    }
+  } else if (B.phase === 'tired') {
+    B.x = lerp(B.x, 0, clamp(dt * 3, 0, 1));
+    B.z = lerp(B.z, 6.5, clamp(dt * 2.5, 0, 1)); B.y = lerp(B.y, 0.95, clamp(dt * 2.5, 0, 1));
+    const landed = B.z < 7.5;
+    if (landed && p.y > 0.7 && S.mode === 'play') {
+      B.phase = 'boom'; B.boomT = 0; BOOM(); S.shake = 0.7; S.stars += 10;
+      const pp = proj(B.x * LANE, B.z), y = pp.y - (B.y) * pp.s;
+      B.sx = pp.x; B.sy = y;
+      for (const k of ['star', 'spark', 'heart', 'spark']) burst(pp.x, y, k, 16);
+      popup('KABOOM!', W / 2, H * 0.24, '#ff4f9a'); popup('You slayed the dragon! +10 coins', W / 2, H * 0.3, '#8a4dff');
+    } else if (B.t > 7 && p.y === 0) {
+      B.phase = 'fight'; B.energy = 4; B.next = 1.4; ROAR(); popup('It woke up! Dodge again!', W / 2, H * 0.32, '#ff3b3b');
+    }
+  } else if (B.phase === 'boom') {
+    B.boomT += dt;
+    p.y = lerp(p.y, 4.6, clamp(dt * 3, 0, 1)); p.vy = 0;
+    if (B.boomT < 0.8 && Math.random() < dt * 20) burst(B.sx + rand(-60, 60), B.sy + rand(-40, 40), pick(['star', 'spark', 'heart']), 3);
+    if (B.boomT > 1.5) {
+      B.phase = 'glide'; B.t = 0; p.glide = true; p.y = Math.max(p.y, 4.4);
+      S.friend = addObj('friend', 0, { z: SPAWN_Z });
+      for (const [z, n] of [[24, 0], [40, 1], [56, 2]]) {
+        const lane = pick([-1, 0, 1]), yAt = Math.max(0, p.y - 0.6 * (z / 9.5));
+        for (let i = 0; i < 3; i++) S.objs.push({ type: 'star', lane, lx: lane, z: z + i * 2, y: yAt + 0.4, vz: 0, done: false, seed: i + n });
+      }
+      SFX.jump(); popup('Glide down to the party!', W / 2, H * 0.3, '#29b6c9');
+    }
+  } else if (B.phase === 'glide' && p.glide) {
+    p.y = Math.max(0, p.y - 0.6 * dt);
+    if (p.y <= 0) { p.glide = false; SFX.pet(); }
+  }
+}
+function drawBoss() {
+  const B = S.boss; if (!B || B.phase === 'glide') return;
+  let k = BOSS_K, alpha = 1;
+  if (B.phase === 'boom') { k *= 1 + B.boomT * 0.6; alpha = clamp(1 - B.boomT * 3, 0, 1); }
+  if (alpha <= 0) return;
+  withWorld(B.x * LANE, B.z, 0, () => {
+    ctx.globalAlpha *= alpha;
+    ctx.save(); ctx.scale(1, 1); shadow(ctx, 1.3); ctx.restore();
+    ctx.translate(0, -B.y); ctx.scale(k, k);
+    drawDragon(ctx, S.t, { tired: B.phase === 'tired', fire: B.fireT > 0 });
+  });
+  if (B.phase === 'tired') { const pp = proj(B.x * LANE, B.z); label(B.x * LANE, B.z, B.y + 2.7, 'Zzz...', '#8a4dff'); }
+}
+function drawBossUi() {
+  const B = S.boss; if (!B) return;
+  const fs = clamp(Math.min(W, H) * 0.042, 14, 22);
+  ctx.save(); ctx.font = `800 ${fs}px "Baloo 2", system-ui, sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineJoin = 'round';
+  if (B.phase === 'fight' || B.phase === 'tired') {
+    const bw = Math.min(W * 0.6, 300), bx = W / 2 - bw / 2, by = Math.max(124, H * 0.16);
+    ctx.lineWidth = fs * 0.26; ctx.strokeStyle = '#fffaf0'; ctx.strokeText('🐉 Dragon energy', W / 2, by - fs * 0.9); ctx.fillStyle = '#2d2440'; ctx.fillText('🐉 Dragon energy', W / 2, by - fs * 0.9);
+    ctx.fillStyle = '#fffaf0'; ctx.strokeStyle = OUT; ctx.lineWidth = 3; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(bx, by, bw, 16, 8) : ctx.rect(bx, by, bw, 16); ctx.fill(); ctx.stroke();
+    const f = clamp(B.energy / BOSS_SHOTS, 0, 1);
+    if (f > 0) { ctx.fillStyle = '#7bd389'; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(bx + 3, by + 3, (bw - 6) * f, 10, 5) : ctx.rect(bx + 3, by + 3, (bw - 6) * f, 10); ctx.fill(); }
+  }
+  if (B.phase === 'tired' && B.z < 7.5) {
+    const big = clamp(Math.min(W, H) * 0.065, 20, 40), k = 1 + Math.sin(S.t * 6) * 0.05;
+    ctx.translate(W / 2, H * 0.4); ctx.scale(k, k); ctx.font = `800 ${big}px "Baloo 2", system-ui, sans-serif`;
+    for (const [txt, dy] of [['↑', -big * 1.1], ['Jump to slay the dragon!', 0]]) { ctx.lineWidth = big * 0.24; ctx.strokeStyle = '#fffaf0'; ctx.strokeText(txt, 0, dy); ctx.fillStyle = '#ff4f9a'; ctx.fillText(txt, 0, dy); }
+  }
+  ctx.restore();
+  if (B.phase === 'boom' && B.boomT < 1.2) {
+    const r = B.boomT * Math.max(W, H) * 0.9;
+    ctx.save(); ctx.globalAlpha = clamp(1 - B.boomT / 1.2, 0, 1);
+    ['#ffcf33', '#ff4f9a', '#29b6c9', '#8a4dff'].forEach((col, i) => { ctx.beginPath(); ctx.arc(B.sx, B.sy, Math.max(1, r - i * 26), 0, 7); ctx.lineWidth = 18; ctx.strokeStyle = col; ctx.stroke(); });
+    ctx.globalAlpha *= 0.5; ctx.fillStyle = '#fffaf0'; ctx.beginPath(); ctx.arc(B.sx, B.sy, Math.max(1, r * 0.6), 0, 7); ctx.fill();
+    ctx.restore();
+  }
+}
+
 // ---------- Update ----------
 function endChallenge() { S.chal = null; S.chalAt = S.dist + 500; }
 function hurt() {
@@ -1141,6 +1268,7 @@ function update(dt) {
   if (playing) {
     const d = S.endless ? clamp((level.base || 0) + S.dist / 1600, 0, 1.4) : difficulty();
     let target = (11 + 11 * d) * (level.speedMul || 1);
+    if (S.boss) target = S.boss.phase === 'glide' ? 9.5 : 0;
     if (S.slow > 0) { S.slow -= dt; target *= 0.6; }
     S.speed = lerp(S.speed, target, clamp(dt * 2, 0, 1));
   } else if (S.mode === 'start') {
@@ -1155,7 +1283,7 @@ function update(dt) {
 
   const move = S.speed * dt;
   if (playing) S.dist += move;
-  if (playing && !S.endless) {
+  if (playing && !S.endless && !S.boss) {
     const before = Math.ceil(S.time);
     S.time = Math.max(0, S.time - dt);
     const after = Math.ceil(S.time);
@@ -1169,12 +1297,13 @@ function update(dt) {
   // player
   p.x = lerp(p.x, p.lane, clamp(dt * 14, 0, 1));
   camX = p.x * LANE * 0.45;
-  if (p.y > 0 || p.vy > 0) {
+  if (!(S.boss && (S.boss.phase === 'boom' || S.boss.phase === 'glide')) && (p.y > 0 || p.vy > 0)) {
     p.vy -= (level.gravity || GRAVITY) * dt; p.y += p.vy * dt;
     if (p.y <= 0) { p.y = 0; p.vy = 0; if (p.slideQueued) { p.slideQueued = false; p.slideT = SLIDE_TIME; SFX.slide(); } }
   }
   if (p.slideT > 0) p.slideT -= dt;
   if (p.inv > 0) p.inv -= dt;
+  if (S.boss && (S.mode === 'play' || S.mode === 'cheer' || S.mode === 'won')) bossTick(dt);
   p.phase += dt * (S.speed > 0.5 ? 6 + S.speed * 0.45 : 0);
   if (S.shake > 0) S.shake -= dt;
 
@@ -1195,7 +1324,8 @@ function update(dt) {
     for (const o of S.objs) if (o.type === 'giftTable' && S.hasPresent && !o.missed && o.z < -0.8) {
       o.missed = true; const pp = proj(p.x * LANE, 0); popup('Missed it! Try again', pp.x, pp.y - 2.4 * pp.s, '#ff4f9a'); spawnGiftTable(40);
     }
-    if (!S.endless && !S.friend && S.dist >= friendAt - SPAWN_Z) {
+    if (level.id === 'castle') { if (!S.endless && !S.boss && S.dist >= friendAt) startBoss(); }
+    else if (!S.endless && !S.friend && S.dist >= friendAt - SPAWN_Z) {
       if (level.id === 'drive') {
         S.friend = addObj('friend', 1.8, { z: SPAWN_Z });
         S.scen.push({ type: 'friendHouse', x: 4.9, z: SPAWN_Z + 1.5, seed: 1, big: 1 });
@@ -1205,7 +1335,8 @@ function update(dt) {
 
   // objects
   for (const o of S.objs) {
-    o.z -= move + (S.speed > 0.5 ? o.vz * dt : 0);
+    o.z -= move + (S.speed > 0.5 && o.type !== 'fireball' ? o.vz * dt : 0);
+    if (o.type === 'fireball') { o.z -= o.vz * dt; o.y = lerp(0.7, o.y0, clamp(o.z / o.z0, 0, 1)); }
     if (o.type === 'meanDog') {
       if (!o.barked && o.z < 42) { o.barked = true; if (playing) SFX.bark(); }
       if (!o.turned && o.z < 22) {
@@ -1297,6 +1428,9 @@ function update(dt) {
       else if (t === 'float') safe = p.y > 0.55;
       else if (t === 'swimmer') safe = p.slideT > 0;
       else if (t === 'pinata') safe = p.slideT > 0;
+      else if (t === 'barrel') safe = p.y > 0.55;
+      else if (t === 'banner') safe = p.slideT > 0;
+      else if (t === 'fireball') safe = p.y > 1.3;
       else if (t === 'bounce') {
         safe = p.y > 0.3;
         if (safe && !o.bounced) { o.bounced = true; p.vy = Math.max(p.vy, 11); SFX.jump(); const pp = proj(p.x * LANE, 0); popup('Boing!', pp.x, pp.y - 2.6 * pp.s, '#ff5f5f'); }
@@ -1308,6 +1442,9 @@ function update(dt) {
         if (t === 'hair') { const pp = proj(p.x * LANE, 0); popup('Ewww, hair!', pp.x, pp.y - 3.1 * pp.s, '#5a3a24'); }
         if (t === 'police') { const pp = proj(p.x * LANE, 0); popup('Caught by the police!', pp.x, pp.y - 3.1 * pp.s, '#1f3a8a'); }
         if (t === 'car' || t === 'truck') { const pp = proj(p.x * LANE, 0); popup('Beep beep!', pp.x, pp.y - 3.1 * pp.s, '#2d2440'); }
+        if (t === 'fireball') { const pp = proj(p.x * LANE, 0); popup('Ouch, hot!', pp.x, pp.y - 3.1 * pp.s, '#ff7a1a'); burst(pp.x, pp.y - 1.2 * pp.s, 'spark', 14); }
+        if (t === 'knight') { const pp = proj(p.x * LANE, 0); popup('Clang!', pp.x, pp.y - 3.1 * pp.s, '#4a4462'); }
+        if (t === 'swoop') { const pp = proj(p.x * LANE, 0); popup('The dragon got you!', pp.x, pp.y - 3.1 * pp.s, '#8a4dff'); }
         if (t === 'cake') { const pp = proj(p.x * LANE, 0); popup('No cake without my friend!', pp.x, pp.y - 3.1 * pp.s, '#8a4dff'); }
       }
     }
@@ -1444,10 +1581,13 @@ function drawPerson(c, L, v) {
   }
   if (!front) drawBackAcc(c, L, ph);
   drawNeckAcc(c, L, front);
-  if (!v.carry && !v.bars) drawHeld(c, L, hands[1][0], hands[1][1]);
+  if (v.knight) drawArmor(c, v.knight);
+  if (!v.carry && !v.bars && !v.knight) drawHeld(c, L, hands[1][0], hands[1][1]);
+  if (v.knight && !v.knight.noArms) drawSwordShield(c, v.knight, hands);
   for (const [x, y] of hands) circle(c, x, y, 0.075, L.skin, OUT, LW);
   drawHead(c, L, front, ph, v.goggles);
   drawHeadAcc(c, L, front);
+  if (v.knight) drawHelmet(c, v.knight, front);
   c.restore(); c.restore();
 }
 function drawArm(c, L, s, [hx, hy]) {
@@ -2414,7 +2554,7 @@ function drawBalloons(c, t, seed) {
   }
 }
 
-const partyLook = L => (level.id === 'party' && L.hat === 'none' ? Object.assign({}, L, { hat: 'partyhat' }) : L);
+const partyLook = L => ((level.id === 'party' || (level.id === 'castle' && S.boss && S.boss.phase === 'glide')) && L.hat === 'none' ? Object.assign({}, L, { hat: 'partyhat' }) : L);
 // ---------- Drive art (Level 3, from Lily's drawing) ----------
 const CAR_COLS = ['#ff5f5f', '#3f6bff', '#ffcf33', '#7bd389', '#ff9f1c', '#8a4dff', '#29b6c9', '#ffffff'];
 const RIDES = [['sports', 'Sports car'], ['family', 'Family car'], ['mini', 'Mini'], ['jeep', 'Jeep'], ['van', 'Camper van'], ['golf', 'Golf cart'], ['moto', 'Motorcycle']];
@@ -2549,6 +2689,165 @@ function drawSpeedSign(c) {
   textAt(c, '10', 0, -1.87, 0.32, '#2d2440');
 }
 
+// ---------- Castle art (Level 5, Lily's idea) ----------
+const KNIGHT_LOOK = { skin: '#e0a87c', hair: 'short', hairColor: '#2b1b12', hat: 'none', hatColor: '#2d2440', top: 'tee', topColor: '#3a3352', bottom: 'pants', bottomColor: '#2d2440', shoeColor: '#2d2440', extra: 'none', costume: 'none', hold: 'none', hairAcc: 'none', face: 'none', head: 'none', neck: 'none' };
+const DARK_KNIGHT = { metal: '#4a4462', plume: '#ff3b3b', shield: '#2d2440', emblem: '#ff3b3b', visor: true };
+const MY_ARMOR = { metal: '#dfe4ee', plume: '#ff4f9a', shield: '#29b6c9', emblem: '#ffcf33' };
+const knightLook = L => Object.assign({}, L, { hat: 'none', head: 'none', hairAcc: 'none', hold: 'none', costume: 'none', extra: L.extra === 'glasses' || L.extra === 'both' ? 'glasses' : 'none' });
+function drawArmor(c, K) {
+  rrect(c, -0.25, -1.02, 0.5, 0.46, 0.15, K.metal, OUT, LW);
+  line(c, 0, -0.97, 0, -0.62, shade(K.metal, -0.2), 0.03);
+  rrect(c, -0.26, -0.6, 0.52, 0.08, 0.03, '#8a5530', OUT, 0.03);
+  circle(c, -0.25, -0.93, 0.1, K.metal, OUT, 0.035); circle(c, 0.25, -0.93, 0.1, K.metal, OUT, 0.035);
+}
+function drawSwordShield(c, K, hands) {
+  const [sx, sy] = hands[1];
+  limb(c, sx + 0.01, sy - 0.08, sx + 0.12, sy - 0.78, '#eef2f8', 0.09);
+  line(c, sx + 0.03, sy - 0.16, sx + 0.1, sy - 0.66, '#ffffff', 0.025);
+  limb(c, sx - 0.13, sy - 0.09, sx + 0.15, sy - 0.12, '#ffcf33', 0.06);
+  circle(c, sx - 0.005, sy + 0.08, 0.045, '#ffcf33', OUT, 0.025);
+  const [hx, hy] = hands[0];
+  c.beginPath(); c.moveTo(hx - 0.21, hy - 0.26); c.lineTo(hx + 0.21, hy - 0.26); c.lineTo(hx + 0.21, hy + 0.02);
+  c.quadraticCurveTo(hx + 0.19, hy + 0.22, hx, hy + 0.31); c.quadraticCurveTo(hx - 0.19, hy + 0.22, hx - 0.21, hy + 0.02); c.closePath();
+  fillStroke(c, K.shield, LW);
+  if (K.visor) { line(c, hx, hy - 0.22, hx, hy + 0.24, K.emblem, 0.05); line(c, hx - 0.17, hy - 0.06, hx + 0.17, hy - 0.06, K.emblem, 0.05); }
+  else { c.save(); c.translate(hx, hy - 0.02); c.scale(0.62, 0.62); starPath(c); c.fillStyle = K.emblem; c.fill(); c.lineWidth = 0.05; c.strokeStyle = OUT; c.stroke(); c.restore(); }
+}
+function drawHelmet(c, K, front) {
+  if (front && K.visor) {
+    circle(c, 0, HY, HR + 0.05, K.metal, OUT, LW);
+    rrect(c, -0.22, HY - 0.03, 0.44, 0.09, 0.04, '#1a1428', null);
+    circle(c, -0.09, HY + 0.015, 0.025, '#ffffff', null); circle(c, 0.09, HY + 0.015, 0.025, '#ffffff', null);
+    line(c, 0, HY + 0.08, 0, HY + 0.3, shade(K.metal, -0.25), 0.03);
+  } else if (front) {
+    c.beginPath(); c.arc(0, HY, HR + 0.05, Math.PI * 1.02, -0.02); c.closePath(); fillStroke(c, K.metal, LW);
+    line(c, -0.33, HY - 0.02, 0.33, HY - 0.02, shade(K.metal, -0.2), 0.04);
+  } else {
+    circle(c, 0, HY, HR + 0.05, K.metal, OUT, LW);
+    line(c, -0.34, HY + 0.08, 0.34, HY + 0.08, shade(K.metal, -0.2), 0.04);
+    line(c, 0, HY - 0.33, 0, HY + 0.3, shade(K.metal, -0.12), 0.03);
+  }
+  ellipse(c, 0, HY - 0.46, 0.08, 0.17, K.plume, OUT, 0.03, Math.sin(S.t * 6) * 0.15);
+}
+function drawDragon(c, t, o = {}) {
+  const flap = Math.sin(t * (o.tired ? 2 : 7)) * (o.tired ? 0.08 : 0.28);
+  for (const s of [-1, 1]) {
+    c.save(); c.scale(s, 1); c.translate(0.3, -0.25); c.rotate(-flap);
+    c.beginPath(); c.moveTo(0, -0.05); c.quadraticCurveTo(0.6, -1.0, 1.25, -0.72); c.quadraticCurveTo(1.05, -0.4, 1.15, -0.12);
+    c.quadraticCurveTo(0.85, -0.18, 0.78, 0.12); c.quadraticCurveTo(0.5, 0.0, 0.3, 0.32); c.closePath(); fillStroke(c, '#9b6bff', 0.05);
+    for (const [x, y] of [[1.2, -0.7], [1.12, -0.14], [0.78, 0.1]]) line(c, 0.05, -0.02, x, y, '#6a3fd6', 0.035);
+    c.restore();
+  }
+  c.beginPath(); c.moveTo(0.3, 0.42); c.quadraticCurveTo(1.05, 0.65, 0.95, 0.12);
+  c.strokeStyle = OUT; c.lineWidth = 0.21; c.stroke(); c.strokeStyle = '#3fbf6a'; c.lineWidth = 0.13; c.stroke();
+  c.beginPath(); c.moveTo(0.85, 0.16); c.lineTo(1.08, -0.08); c.lineTo(1.04, 0.2); c.closePath(); fillStroke(c, '#9b6bff', 0.03);
+  for (const s of [-1, 1]) { ellipse(c, s * 0.3, 0.56, 0.18, 0.13, '#36a85c', OUT, 0.04); for (const k of [-1, 0, 1]) circle(c, s * 0.3 + k * 0.07, 0.66, 0.025, '#ffffff', null); }
+  ellipse(c, 0, 0.08, 0.56, 0.56, '#3fbf6a', OUT, 0.05);
+  ellipse(c, 0, 0.18, 0.34, 0.4, '#ffe08a', OUT, 0.035);
+  for (const y of [0.02, 0.16, 0.3]) line(c, -0.22, y, 0.22, y, '#e8b850', 0.025);
+  for (const s of [-1, 1]) ellipse(c, s * 0.42, 0.12, 0.09, 0.15, '#36a85c', OUT, 0.035, s * 0.6);
+  const hy = -0.62;
+  for (const s of [-1, 1]) {
+    c.beginPath(); c.moveTo(s * 0.14, hy - 0.28); c.lineTo(s * 0.3, hy - 0.62); c.lineTo(s * 0.3, hy - 0.22); c.closePath(); fillStroke(c, '#ffcf33', 0.03);
+    c.beginPath(); c.moveTo(s * 0.34, hy - 0.08); c.lineTo(s * 0.58, hy - 0.2); c.lineTo(s * 0.4, hy + 0.08); c.closePath(); fillStroke(c, '#9b6bff', 0.03);
+  }
+  circle(c, 0, hy, 0.38, '#3fbf6a', OUT, 0.05);
+  ellipse(c, 0, hy + 0.17, 0.26, 0.16, '#6fd98c', OUT, 0.04);
+  circle(c, -0.08, hy + 0.13, 0.03, '#2d2440', null); circle(c, 0.08, hy + 0.13, 0.03, '#2d2440', null);
+  for (const s of [-1, 1]) {
+    if (o.tired) { c.beginPath(); c.arc(s * 0.15, hy - 0.1, 0.07, 0.2, Math.PI - 0.2); c.strokeStyle = OUT; c.lineWidth = 0.04; c.stroke(); }
+    else {
+      ellipse(c, s * 0.15, hy - 0.1, 0.085, 0.1, '#ffffff', OUT, 0.03);
+      circle(c, s * 0.14, hy - 0.08, 0.045, '#2d2440', null); circle(c, s * 0.12, hy - 0.11, 0.015, '#ffffff', null);
+      line(c, s * 0.26, hy - 0.26, s * 0.07, hy - 0.2, OUT, 0.04);
+    }
+  }
+  c.save(); c.globalAlpha *= 0.45; circle(c, -0.25, hy + 0.06, 0.05, '#ff6f91', null); circle(c, 0.25, hy + 0.06, 0.05, '#ff6f91', null); c.restore();
+  if (o.fire) { ellipse(c, 0, hy + 0.3, 0.12, 0.08, '#8a1a2a', OUT, 0.03); circle(c, 0, hy + 0.32, 0.06, '#ffb02e', null); }
+  else if (o.tired) { ellipse(c, 0, hy + 0.3, 0.06, 0.05, '#8a1a2a', OUT, 0.025); }
+  else { c.beginPath(); c.moveTo(-0.1, hy + 0.27); c.quadraticCurveTo(0, hy + 0.33, 0.1, hy + 0.27); c.strokeStyle = OUT; c.lineWidth = 0.035; c.stroke(); }
+}
+function drawFireball(c, t, seed) {
+  for (let i = 0; i < 6; i++) { const a = i * 1.05 + t * 7 + seed, r = 0.3 + Math.sin(t * 20 + i) * 0.05; circle(c, Math.cos(a) * r, Math.sin(a) * r - 0.05, 0.13, '#ff7a1a', null); }
+  circle(c, 0, 0, 0.32, '#ff9f1c', OUT, 0.04);
+  circle(c, -0.04, -0.04, 0.17, '#ffe14d', null);
+}
+function drawBarrel(c) {
+  rrect(c, -0.42, -0.85, 0.84, 0.85, 0.2, '#b8763e', OUT, 0.045);
+  for (const y of [-0.7, -0.18]) rrect(c, -0.44, y, 0.88, 0.09, 0.04, '#8a8aa0', OUT, 0.03);
+  for (const x of [-0.2, 0, 0.2]) line(c, x, -0.82, x, -0.04, '#8f5428', 0.025);
+}
+function drawBanner(c, t) {
+  for (const s of [-1, 1]) rrect(c, s * 0.62 - 0.08, -1.55, 0.16, 1.55, 0.05, '#bdb6cc', OUT, 0.04);
+  rrect(c, -0.72, -1.62, 1.44, 0.14, 0.05, '#8a5530', OUT, 0.035);
+  for (let i = 0; i < 5; i++) {
+    const x = -0.5 + i * 0.25, sw = Math.sin(t * 3 + i) * 0.03;
+    c.beginPath(); c.moveTo(x - 0.11, -1.5); c.lineTo(x + 0.11, -1.5); c.lineTo(x + 0.11 + sw, -1.14); c.lineTo(x + sw, -1.04); c.lineTo(x - 0.11 + sw, -1.14); c.closePath();
+    fillStroke(c, i % 2 ? '#ff4f9a' : '#8a4dff', 0.03);
+  }
+}
+function drawRock(c, k = 1) {
+  c.save(); c.scale(k, k);
+  c.beginPath(); c.moveTo(-0.5, 0); c.quadraticCurveTo(-0.56, -0.5, -0.22, -0.72); c.quadraticCurveTo(0.2, -0.86, 0.46, -0.5); c.quadraticCurveTo(0.6, -0.2, 0.5, 0); c.closePath();
+  fillStroke(c, '#a8a2b8', 0.045); line(c, -0.18, -0.5, 0.06, -0.38, '#8a8499', 0.03); c.restore();
+}
+function drawTorch(c, t) {
+  rrect(c, -0.06, -1.9, 0.12, 1.9, 0.04, '#6e4a2a', OUT, 0.03);
+  rrect(c, -0.13, -2.05, 0.26, 0.18, 0.05, '#8a8aa0', OUT, 0.03);
+  const f = Math.sin(t * 14) * 0.03;
+  ellipse(c, 0, -2.25 + f, 0.13, 0.22, '#ff9f1c', OUT, 0.03); ellipse(c, 0, -2.2, 0.06, 0.12, '#ffe14d', null);
+}
+function drawFlagPole(c, t, seed) {
+  line(c, 0, 0, 0, -3.2, OUT, 0.11); line(c, 0, 0, 0, -3.2, '#d7d1e4', 0.06);
+  const col = ['#ff4f9a', '#8a4dff', '#29b6c9', '#ffcf33'][Math.floor(seed) % 4];
+  c.beginPath(); c.moveTo(0.03, -3.15);
+  for (let i = 0; i <= 6; i++) c.lineTo(0.03 + i * 0.16, -3.15 + Math.sin(t * 4 + i * 0.8) * 0.06 + i * 0.03);
+  c.lineTo(0.5, -2.55); for (let i = 6; i >= 0; i--) c.lineTo(0.03 + i * 0.16, -2.6 + Math.sin(t * 4 + i * 0.8) * 0.06 - i * 0.02);
+  c.closePath(); fillStroke(c, col, 0.035);
+}
+function drawTower(c, seed) {
+  const roof = seed % 2 < 1 ? '#8a4dff' : '#ff4f9a';
+  rrect(c, -0.75, -3.6, 1.5, 3.6, 0.08, '#cfc8de', OUT, 0.05);
+  for (let i = 0; i < 4; i++) rrect(c, -0.78 + i * 0.42, -3.85, 0.3, 0.3, 0.04, '#cfc8de', OUT, 0.04);
+  c.beginPath(); c.moveTo(-0.9, -3.85); c.lineTo(0, -5.3); c.lineTo(0.9, -3.85); c.closePath(); fillStroke(c, roof, 0.05);
+  c.beginPath(); c.moveTo(-0.18, -2.0); c.lineTo(-0.18, -2.5); c.quadraticCurveTo(0, -2.72, 0.18, -2.5); c.lineTo(0.18, -2.0); c.closePath(); fillStroke(c, '#2d2440', 0.035);
+  for (const [x, y] of [[-0.4, -1.1], [0.35, -0.6], [0.4, -3.0]]) rrect(c, x - 0.15, y - 0.07, 0.3, 0.14, 0.03, '#bab2cc', null);
+}
+// the castle far away grows as you get closer (screen space)
+function drawCastleBackdrop() {
+  const near = S.endless ? 0.35 : clamp((S.dist - (level.goal - 700)) / 700, 0, 1);
+  const k = lerp(0.3, 1, near), u = Math.min(W * 0.32, H * 0.22) * k;
+  const fade = S.boss && S.boss.phase === 'glide' ? clamp(1 - S.boss.t / 1.5, 0, 1) : 1;
+  if (fade <= 0) return;
+  ctx.save(); ctx.globalAlpha = fade; ctx.translate(cx - camX * 6, horizon + 3); ctx.scale(u, u); ctx.lineJoin = 'round';
+  const stone = '#ded7ec';
+  rrect(ctx, -1.15, -0.55, 2.3, 0.55, 0.02, stone, OUT, 0.03);
+  for (let i = 0; i < 9; i++) rrect(ctx, -1.1 + i * 0.25, -0.65, 0.14, 0.12, 0.01, stone, OUT, 0.025);
+  for (const s of [-1, 1]) {
+    rrect(ctx, s * 1.15 - 0.2, -1.0, 0.4, 1.0, 0.02, stone, OUT, 0.03);
+    ctx.beginPath(); ctx.moveTo(s * 1.15 - 0.26, -1.0); ctx.lineTo(s * 1.15, -1.42); ctx.lineTo(s * 1.15 + 0.26, -1.0); ctx.closePath(); fillStroke(ctx, '#ff4f9a', 0.03);
+    rrect(ctx, s * 1.15 - 0.05, -0.75, 0.1, 0.16, 0.05, '#2d2440', null);
+  }
+  rrect(ctx, -0.38, -1.12, 0.76, 1.12, 0.02, stone, OUT, 0.03);
+  ctx.beginPath(); ctx.moveTo(-0.46, -1.12); ctx.lineTo(0, -1.65); ctx.lineTo(0.46, -1.12); ctx.closePath(); fillStroke(ctx, '#8a4dff', 0.03);
+  line(ctx, 0, -1.65, 0, -1.9, OUT, 0.025);
+  ctx.beginPath(); ctx.moveTo(0, -1.9); ctx.lineTo(0.22, -1.83 + Math.sin(S.t * 4) * 0.02); ctx.lineTo(0, -1.76); ctx.closePath(); fillStroke(ctx, '#ffcf33', 0.02);
+  ctx.beginPath(); ctx.moveTo(-0.17, 0); ctx.lineTo(-0.17, -0.28); ctx.quadraticCurveTo(0, -0.44, 0.17, -0.28); ctx.lineTo(0.17, 0); ctx.closePath(); fillStroke(ctx, '#7a4a2a', 0.03);
+  for (const x of [-0.18, 0.18]) rrect(ctx, x - 0.06, -0.85, 0.12, 0.18, 0.06, '#2d2440', null);
+  ctx.restore();
+}
+function drawGlider(c) {
+  for (const s of [-1, 1]) line(c, s * 0.44, -1.15, s * 0.12, -2.15, OUT, 0.04);
+  c.beginPath(); c.moveTo(-1.55, -1.95); c.quadraticCurveTo(-0.7, -2.5, 0, -2.6); c.quadraticCurveTo(0.7, -2.5, 1.55, -1.95); c.quadraticCurveTo(0, -2.25, -1.55, -1.95); c.closePath();
+  fillStroke(c, '#ff4f9a', 0.05);
+  c.save(); c.clip();
+  ['#ffcf33', '#29b6c9', '#8a4dff'].forEach((col, i) => { c.fillStyle = col; c.fillRect(-1.6 + i * 1.07 + 0.35, -2.7, 0.36, 0.9); });
+  c.restore();
+  c.beginPath(); c.moveTo(-1.55, -1.95); c.quadraticCurveTo(-0.7, -2.5, 0, -2.6); c.quadraticCurveTo(0.7, -2.5, 1.55, -1.95); c.quadraticCurveTo(0, -2.25, -1.55, -1.95); c.closePath();
+  c.lineWidth = 0.05; c.strokeStyle = OUT; c.stroke();
+  line(c, -0.44, -1.15, 0.44, -1.15, '#8a8aa0', 0.05);
+}
+
 // ---------- Draw world ----------
 function drawSky() {
   const g = ctx.createLinearGradient(0, 0, 0, horizon + 10);
@@ -2579,6 +2878,7 @@ function drawSky() {
     ctx.lineTo(xx, horizon - 6 - Math.abs(Math.sin(xx * 0.13)) * 9);
   }
   ctx.lineTo(W, horizon + 2); ctx.closePath(); ctx.fill();
+  if (level.id === 'castle') drawCastleBackdrop();
 }
 function hills(col, base, amp, freq, off, ph) {
   ctx.fillStyle = col; ctx.beginPath(); ctx.moveTo(0, horizon + 2);
@@ -2667,10 +2967,16 @@ function drawThing(o) {
       else if (o.type === 'friendHouse') drawHouse(ctx, 1, true);
       else if (o.type === 'speed') drawSpeedSign(ctx);
       else if (o.type === 'balloons') drawBalloons(ctx, t, o.seed);
+      else if (o.type === 'tower') drawTower(ctx, o.seed);
+      else if (o.type === 'torch') drawTorch(ctx, t + o.seed);
+      else if (o.type === 'flag') drawFlagPole(ctx, t, o.seed);
+      else if (o.type === 'srock') drawRock(ctx, 0.8 * o.big);
     });
     return;
   }
   if (o.kind === 'player') { drawPlayer(); return; }
+  if (o.kind === 'boss') { drawBoss(); return; }
+  if (o.done && o.type === 'fireball') return;
   if (o.done && o.type === 'bigHeart') return;
   if (o.done && (o.type === 'star' || o.type === 'clock')) return;
   const xw = o.lx * LANE;
@@ -2702,6 +3008,12 @@ function drawThing(o) {
       case 'cake': shadow(ctx, 0.35); drawPerson(ctx, PEOPLE.cakeGuy, { view: 'front', pose: 'stand', bars: true }); drawCake(ctx, t); break;
       case 'star': ctx.translate(0, -o.y); drawCoin(ctx, t, o.seed); break;
       case 'gate': drawGate(ctx, t); break;
+      case 'knight': shadow(ctx, 0.4); drawPerson(ctx, KNIGHT_LOOK, { view: 'front', pose: o.walk ? 'walk' : 'stand', phase: ph * 0.6, knight: DARK_KNIGHT }); break;
+      case 'barrel': shadow(ctx, 0.6); drawBarrel(ctx); break;
+      case 'banner': shadow(ctx, 0.9); drawBanner(ctx, t); break;
+      case 'rock': shadow(ctx, 0.7); drawRock(ctx, 1.1); break;
+      case 'swoop': ctx.save(); ctx.globalAlpha *= 0.6; shadow(ctx, 0.8); ctx.restore(); ctx.translate(0, -o.y - Math.sin(t * 5) * 0.08); ctx.scale(0.62, 0.62); drawDragon(ctx, t + o.seed, {}); break;
+      case 'fireball': ctx.save(); ctx.fillStyle = 'rgba(255,90,40,0.35)'; ctx.beginPath(); ctx.ellipse(0, 0, 0.5, 0.12, 0, 0, 7); ctx.fill(); ctx.restore(); ctx.translate(0, -o.y); drawFireball(ctx, t, o.seed); break;
       case 'bigHeart': ctx.translate(0, -o.y - Math.sin(t * 4) * 0.1); drawBigHeart(ctx, t); break;
       case 'clock': ctx.translate(0, -o.y - Math.sin(t * 4 + o.seed) * 0.08); drawClock(ctx, t); break;
       case 'friend': {
@@ -2716,6 +3028,8 @@ function drawThing(o) {
   });
   // labels drawn in screen space
   if (o.type === 'meanDog' && o.z < 40 && o.z > 1) label(xw, o.z, 1.45, 'GRRR!', '#ff3b3b');
+  if (o.type === 'swoop' && o.z < 48 && o.z > 1) label(xw, o.z, 2.3, 'DRAGON!', '#ff3b3b');
+  if (o.type === 'knight' && o.walk && o.z < 30 && o.z > 1) label(xw, o.z, 2.25, 'Halt!', '#4a4462');
   if (o.type === 'hair' && o.z < 30 && o.z > 1) label(xw, o.z, 1.2, 'Eww!', '#5a3a24');
   if (o.type === 'police' && o.z < 40 && o.z > 1) label(xw, o.z, 1.75, 'WEE-OO!', '#1f3a8a');
   if (o.type === 'light' && o.z < 32 && o.z > 1) label(xw, o.z, 3.55, o.red ? 'STOP!' : 'GO!', o.red ? '#ff3b3b' : '#2fae62');
@@ -2777,7 +3091,10 @@ function drawPlayer() {
   if (S.mode === 'cheer' || S.mode === 'won') { pose = 'stand'; ctx.translate(0, -Math.abs(Math.sin(S.t * 7 + 1)) * 0.3); }
   if (S.mode === 'falling' || S.mode === 'over') { ctx.rotate(0.25); pose = 'stand'; }
   if (p.slideT > 0 && p.y === 0) { if (water) ctx.translate(0, 0.3); ctx.scale(1.15, 0.52); pose = water ? 'swim' : 'run'; }
-  drawPerson(ctx, partyLook(PLAYER_LOOK), { view: 'back', pose, phase: p.phase, wave: S.mode === 'cheer' || S.mode === 'won', goggles: water, carry: S.hasPresent });
+  const kn = level.id === 'castle';
+  if (kn && p.glide) pose = 'jump';
+  drawPerson(ctx, kn ? knightLook(PLAYER_LOOK) : partyLook(PLAYER_LOOK), { view: 'back', pose, phase: p.phase, wave: !p.glide && (S.mode === 'cheer' || S.mode === 'won'), goggles: water, carry: S.hasPresent, knight: kn ? (p.glide ? Object.assign({}, MY_ARMOR, { noArms: true }) : MY_ARMOR) : null });
+  if (kn && p.glide) drawGlider(ctx);
   // dust when sliding
   ctx.restore();
   if (p.slideT > 0 && p.y === 0 && Math.random() < 0.5 && level.kind !== 'water') S.parts.push({ x: pr.x + rand(-20, 20), y: pr.y - 4, vx: rand(-60, 60), vy: rand(-90, -30), life: 0.35, kind: 'dust', rot: 0 });
@@ -2834,10 +3151,12 @@ function render() {
   const list = [];
   for (const s of S.scen) list.push({ kind: 'scen', z: s.z, ...s, kindKeep: 1 });
   for (const o of S.objs) list.push(o);
+  if (S.boss && S.boss.phase !== 'glide') list.push({ kind: 'boss', z: S.boss.z });
   if (S.mode !== 'start') list.push({ kind: 'player', z: 0.01 });
   list.sort((a, b) => b.z - a.z);
   for (const o of list) drawThing(o);
   if (water) drawWaterOverlay();
+  if (S.boss) drawBossUi();
   drawParticles();
   ctx.restore();
 }
