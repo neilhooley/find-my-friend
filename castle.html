@@ -269,6 +269,7 @@ label.namefield input:focus-visible { box-shadow: 0 0 0 4px var(--sun); }
     </div>
     <div class="right">
       <span class="hearts" id="hearts"></span>
+      <button class="iconbtn" id="musicBtn" aria-label="Music on or off"></button>
       <button class="iconbtn" id="soundBtn" aria-label="Sound on or off"></button>
       <button class="iconbtn" id="pauseBtn" aria-label="Pause"><svg viewBox="0 0 24 24"><rect x="6" y="5" width="4" height="14" rx="1.5" fill="#2d2440"/><rect x="14" y="5" width="4" height="14" rx="1.5" fill="#2d2440"/></svg></button>
     </div>
@@ -282,6 +283,7 @@ label.namefield input:focus-visible { box-shadow: 0 0 0 4px var(--sun); }
           <span class="chip coinchip" aria-label="Your coins"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><circle cx="12" cy="12" r="9.5" fill="#ffc61a" stroke="#2d2440" stroke-width="2"/><circle cx="12" cy="12" r="6" fill="none" stroke="#e09a10" stroke-width="1.6"/><path d="M12 8.2l1.2 2.5 2.7.3-2 1.8.6 2.7L12 14.1l-2.5 1.4.6-2.7-2-1.8 2.7-.3z" fill="#fff3b0"/></svg><span class="walletN">0</span></span>
           <button class="btn small" id="shopBtn">Shop</button>
           <button class="btn small quiet" id="howBtn">How to play</button>
+          <button class="iconbtn" id="musicBtn2" aria-label="Music on or off"></button>
         </div>
       </div>
       <nav class="places" role="radiogroup" aria-label="Pick a place">
@@ -4010,6 +4012,113 @@ $('cafeQuit').onclick = $('cafeHome').onclick = () => { D.g = null; toMenu(); };
 setLevel('castle');
 updateWallet();
 
+// ---------- Music: our own little tunes, played live with Web Audio ----------
+// _ = hold the last note, null-free arrays of chord-tone numbers (0 = chord root, 1 = next chord note ...)
+const _ = -1;
+const SONGS = {
+  home: { bpm: 112, chords: [[48, 'M'], [43, 'M'], [45, 'm'], [41, 'M']], bass: 'r...5...r...5.o.', lead: 'triangle',
+    mel: [2, _, 3, _, 4, _, 3, _, 2, _, 1, _, 2, _, _, _, 4, _, 5, _, 4, _, 3, _, 2, _, _, _, _, _, _, _], kick: 'x.......x.......', snare: '....x.......x...', hat: '..x...x...x...x.' },
+  park: { bpm: 128, chords: [[43, 'M'], [48, 'M'], [50, 'M'], [43, 'M'], [40, 'm'], [48, 'M'], [50, 'M'], [50, 'M']], bass: 'r..r5..5r..r5.o.', lead: 'square',
+    mel: [3, _, 4, _, 5, _, 4, _, 3, _, 2, _, 3, _, _, _, 3, _, 4, _, 5, _, 6, _, 5, _, 4, _, 3, _, _, _], kick: 'x.....x.x.......', snare: '....x.......x...', hat: 'x.x.x.x.x.x.x.x.' },
+  pool: { bpm: 90, chords: [[51, 'M7'], [48, 'm7'], [44, 'M7'], [46, '7']], bass: 'r.......5.......', bassWave: 'sine', lead: 'sine', pad: true,
+    arp: [0, 1, 2, 3, 4, 3, 2, 1, 0, 1, 2, 3, 4, 5, 4, 3], mel: [6, _, _, _, 5, _, _, _, 4, _, _, _, _, _, _, _], hat: '....x.......x...', soft: true },
+  drive: { bpm: 140, chords: [[50, 'M'], [47, 'm'], [43, 'M'], [45, 'M']], bass: 'r.r.r.r.r.r.5.o.', lead: 'sawtooth',
+    mel: [5, _, _, 4, _, _, 3, _, 4, _, 5, _, 6, _, 5, _, 5, _, _, 4, _, _, 3, _, 2, _, 3, _, 4, _, _, _], kick: 'x...x...x...x...', snare: '....x.......x...', hat: '.x.x.x.x.x.x.x.x' },
+  party: { bpm: 124, chords: [[41, 'M'], [38, 'm'], [46, 'M'], [48, 'M']], bass: 'r..r..r.o..r..5.', lead: 'square', stab: '..x...x...x...x.',
+    mel: [4, _, 4, _, 3, _, 4, _, 5, _, _, 4, _, 3, _, _, 2, _, 2, _, 1, _, 2, _, 3, _, _, _, _, _, _, _], kick: 'x...x...x...x...', snare: '....x.......x...', hat: '..x...x...x...x.' },
+  castle: { bpm: 132, chords: [[38, 'm'], [34, 'M'], [36, 'M'], [33, 'M']], bass: 'r.r.r.r.r.r.5.5.', lead: 'square',
+    mel: [3, _, 3, 4, 5, _, 3, _, 6, _, 5, _, 4, _, _, _, 3, _, 3, 4, 5, _, 6, _, 7, _, 6, _, 5, _, _, _], kick: 'x.......x.x.....', snare: '....x.....x.x...', hat: 'x.x.x.x.x.x.x.x.' },
+  boss: { bpm: 156, chords: [[33, 'm'], [29, 'M'], [31, 'M'], [28, '7']], bass: 'r.ro.r.ro.r.ro.r', lead: 'sawtooth',
+    mel: [5, _, 4, _, 5, _, 3, _, 5, _, 4, _, 6, _, 5, _], kick: 'x..x..x.x..x..x.', snare: '....x.......x...', hat: 'xxxxxxxxxxxxxxxx' },
+  sky: { bpm: 118, chords: [[46, 'M'], [41, 'M'], [43, 'm'], [39, 'M']], bass: 'r.......5...o...', lead: 'triangle', pad: true,
+    arp: [0, 1, 2, 3, 4, 3, 2, 1], mel: [4, _, _, _, 5, _, 4, _, 3, _, _, _, 2, _, _, _], kick: 'x.......x.......', hat: '..x...x...x...x.' },
+  rainbow: { bpm: 150, chords: [[40, 'm'], [36, 'M'], [43, 'M'], [38, 'M']], bass: 'r.ro.r.ro.r.ro.r', lead: 'square',
+    mel: [3, _, 4, _, 5, _, 4, 3, 4, _, _, _, 5, _, 6, _], kick: 'x...x...x...x.x.', snare: '....x.......x...', hat: 'x.xxx.xxx.xxx.xx' },
+  diner: { bpm: 104, swing: true, chords: [[41, 'M7'], [38, 'm7'], [43, 'm7'], [36, '7']], bass: 'r...5...o...5...', lead: 'triangle', stab: '......x.......x.',
+    mel: [4, _, _, 3, _, 2, _, _, 5, _, 4, _, _, _, _, _], kick: 'x.......x.......', snare: '....x.......x...', hat: 'x.x.x.x.x.x.x.x.' },
+};
+const CHORD = { M: [0, 4, 7], m: [0, 3, 7], '7': [0, 4, 7, 10], M7: [0, 4, 7, 11], m7: [0, 3, 7, 10] };
+const hz = m => 440 * Math.pow(2, (m - 69) / 12);
+let musicOn = store('fmf_music') !== 'off';
+const MUS = { gain: null, song: null, name: null, step: 0, next: 0, noise: null };
+function musicNode() {
+  if (!MUS.gain) { MUS.gain = audio.createGain(); MUS.gain.gain.value = 0; MUS.gain.connect(audio.destination); }
+  if (!MUS.noise) { const n = audio.sampleRate * 0.5, b = audio.createBuffer(1, n, audio.sampleRate), d = b.getChannelData(0); for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1; MUS.noise = b; }
+  return MUS.gain;
+}
+function mNote(f, t, dur, type, vol, cutoff, attack = 0.008) {
+  const o = audio.createOscillator(), g = audio.createGain();
+  o.type = type; o.frequency.setValueAtTime(f, t);
+  g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(vol, t + attack); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  if (cutoff) { const fl = audio.createBiquadFilter(); fl.type = 'lowpass'; fl.frequency.value = cutoff; o.connect(fl); fl.connect(g); } else o.connect(g);
+  g.connect(MUS.gain); o.start(t); o.stop(t + dur + 0.05);
+}
+function mDrum(kind, t, soft) {
+  const v = soft ? 0.5 : 1;
+  if (kind === 'kick') {
+    const o = audio.createOscillator(), g = audio.createGain();
+    o.frequency.setValueAtTime(140, t); o.frequency.exponentialRampToValueAtTime(45, t + 0.12);
+    g.gain.setValueAtTime(0.5 * v, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
+    o.connect(g); g.connect(MUS.gain); o.start(t); o.stop(t + 0.2); return;
+  }
+  const s = audio.createBufferSource(), f = audio.createBiquadFilter(), g = audio.createGain();
+  s.buffer = MUS.noise;
+  if (kind === 'snare') { f.type = 'bandpass'; f.frequency.value = 1800; g.gain.setValueAtTime(0.28 * v, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.14); }
+  else { f.type = 'highpass'; f.frequency.value = 7000; g.gain.setValueAtTime(0.09 * v, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.04); }
+  s.connect(f); f.connect(g); g.connect(MUS.gain); s.start(t); s.stop(t + 0.2);
+}
+function playStep(sg, step, t, sd) {
+  const i = step % 16, bar = Math.floor(step / 16) % sg.chords.length, [root, kind] = sg.chords[bar], tones = CHORD[kind];
+  const tone = (k, oct) => root + oct * 12 + tones[k % tones.length] + 12 * Math.floor(k / tones.length);
+  const b = sg.bass[i];
+  if (b && b !== '.') { const m = b === 'r' ? root : b === '5' ? root + 7 : root + 12; mNote(hz(m - 12), t, sd * 1.9, sg.bassWave || 'triangle', sg.soft ? 0.2 : 0.26, 900); }
+  const ml = sg.mel, n = ml[step % ml.length];
+  if (n >= 0) { let hold = 1; while (hold < 8 && ml[(step + hold) % ml.length] === _) hold++; const saw = sg.lead === 'sawtooth' || sg.lead === 'square'; mNote(hz(tone(n, 1)), t, sd * hold * 0.95, sg.lead, saw ? 0.05 : 0.09, saw ? 2400 : 0); }
+  if (sg.arp) { const a = sg.arp[step % sg.arp.length]; mNote(hz(tone(a, 2)), t, sd * 1.5, 'sine', 0.035); }
+  if (sg.pad && i === 0) for (const k of [0, 1, 2]) mNote(hz(tone(k, 1)), t, sd * 16, 'sine', 0.03, 0, 0.4);
+  if (sg.stab && sg.stab[i] === 'x') for (const k of [0, 1, 2]) mNote(hz(tone(k, 1)), t, sd * 0.9, 'triangle', 0.035);
+  if (sg.kick && sg.kick[i] === 'x') mDrum('kick', t, sg.soft);
+  if (sg.snare && sg.snare[i] === 'x') mDrum('snare', t, sg.soft);
+  if (sg.hat && sg.hat[i] === 'x') mDrum('hat', t, sg.soft);
+}
+function musicTheme() {
+  if (!ui.cafe.hidden) return 'diner';
+  if (S.mode === 'paused' || S.mode === 'over' || S.mode === 'falling') return null;
+  if (S.mode === 'start' || !ui.maker.hidden) return 'home';
+  if (level.id === 'castle') {
+    if (S.fly) return 'sky';
+    if (S.boss) { const ph = S.boss.phase; if (ph === 'glide') return 'party'; if (ph === 'boom' || ph === 'land') return 'sky'; return S.boss.round === 2 ? 'rainbow' : 'boss'; }
+    return S.endless || S.mode === 'play' ? 'castle' : 'party';
+  }
+  return level.id;
+}
+function musicTick() {
+  if (!audio) return;
+  const want = soundOn && musicOn ? musicTheme() : null;
+  const g = musicNode(), now = audio.currentTime;
+  if (want !== MUS.name) {
+    g.gain.cancelScheduledValues(now); g.gain.setValueAtTime(g.gain.value, now); g.gain.linearRampToValueAtTime(0, now + 0.25);
+    MUS.name = want; MUS.song = want ? SONGS[want] : null; MUS.step = 0; MUS.next = now + 0.3;
+    if (MUS.song) g.gain.linearRampToValueAtTime(0.0001, now + 0.3), g.gain.linearRampToValueAtTime(MUS.song.soft ? 0.5 : 0.42, now + 0.9);
+    return;
+  }
+  const sg = MUS.song; if (!sg) return;
+  const sd = 60 / sg.bpm / 4;
+  if (MUS.next < now - 0.3) MUS.next = now + 0.05;
+  while (MUS.next < now + 0.18) {
+    const t = MUS.next + (sg.swing && MUS.step % 2 ? sd * 0.33 : 0);
+    playStep(sg, MUS.step, t, sd);
+    MUS.step++; MUS.next += sd;
+  }
+}
+const NOTE_ON = '<svg viewBox="0 0 24 24"><path d="M9 17.5V6l10-2v11.5" fill="none" stroke="#2d2440" stroke-width="2.2" stroke-linejoin="round"/><circle cx="6.5" cy="17.5" r="2.6" fill="#2d2440"/><circle cx="16.5" cy="15.5" r="2.6" fill="#2d2440"/></svg>';
+const NOTE_OFF = NOTE_ON.replace('</svg>', '<path d="M4 4l16 16" stroke="#ff4f6d" stroke-width="2.6" stroke-linecap="round"/></svg>');
+function setMusicIcon() { for (const id of ['musicBtn', 'musicBtn2']) { const b = $(id); if (b) { b.innerHTML = musicOn ? NOTE_ON : NOTE_OFF; b.setAttribute('aria-pressed', musicOn); } } }
+for (const id of ['musicBtn', 'musicBtn2']) $(id).onclick = () => { initAudio(); musicOn = !musicOn; store('fmf_music', musicOn ? 'on' : 'off'); setMusicIcon(); };
+setMusicIcon();
+document.addEventListener('pointerdown', () => initAudio(), { once: true });
+document.addEventListener('keydown', () => initAudio(), { once: true });
+
 // ---------- Main loop ----------
 let last = performance.now();
 function frame(now) {
@@ -4018,10 +4127,11 @@ function frame(now) {
   render();
   drawPreviews();
   cafeTick(dt);
+  try { musicTick(); } catch (e) {}
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
-window.__fmf = { get S() { return S; }, get D() { return D; } };
+window.__fmf = { get S() { return S; }, get D() { return D; }, get MUS() { return MUS; }, get audio() { return audio; }, toMenu: () => toMenu() };
 })();
 </script>
 
