@@ -170,6 +170,9 @@ body {
 .fooditem { display: grid; justify-items: center; gap: 4px; font: 800 13px/1.1 var(--display); padding: 6px 4px 8px; border: 3px solid var(--ink); border-radius: 16px; background: #fff7e0; color: var(--ink); box-shadow: 0 4px 0 var(--ink); cursor: pointer; }
 .fooditem canvas { width: 64px; height: 64px; }
 .fooditem.taken { opacity: 0.35; pointer-events: none; }
+.fooditem.locked { background: #efe6ff; }
+.fooditem.locked canvas { opacity: 0.55; }
+.foodprice { font: 800 12px/1 var(--display); color: #8a4dff; }
 .starkey { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; font: 800 13px/1 var(--body); }
 .starkey span { background: #fff7e0; border: 2px solid var(--ink); border-radius: 999px; padding: 6px 9px; }
 .bigstars { font-size: 46px; letter-spacing: 4px; }
@@ -462,10 +465,10 @@ const SKINS = ['#ffe0c7', '#f3c9a4', '#e0a87c', '#c98d63', '#a0663f', '#6e4129',
 const HAIR_COLORS = ['#2b1b12', '#5a3220', '#8a5530', '#d9a441', '#f5d77a', '#e8643a', '#ff6fb5', '#5b8cff', '#8a4dff', '#f4f4f4'];
 const BRIGHTS = ['#ff4f9a', '#ff5f5f', '#ff9f1c', '#ffcf33', '#7bd389', '#2fae62', '#29b6c9', '#3f6bff', '#8a4dff', '#ffffff', '#2d2440', '#9aa0b8'];
 const OPTIONS = {
-  hair: [['pony', 'Ponytail'], ['puffs', 'Puffs'], ['short', 'Short'], ['long', 'Long'], ['curly', 'Curly'], ['spiky', 'Spiky'], ['buns', 'Space buns'], ['braids', 'Braids']],
+  hair: [['pony', 'Ponytail'], ['puffs', 'Puffs'], ['short', 'Short'], ['long', 'Long'], ['curly', 'Curly'], ['spiky', 'Spiky'], ['buns', 'Space buns'], ['braids', 'Braids'], ['afro', 'Afro'], ['pigtails', 'Pigtails'], ['bob', 'Bob'], ['topbun', 'Top bun'], ['mohawk', 'Mohawk'], ['wavy', 'Long waves']],
   hat: [['none', 'None'], ['cap', 'Cap'], ['beanie', 'Beanie'], ['headphones', 'Headphones'], ['crown', 'Crown'], ['flower', 'Flower'], ['partyhat', 'Party hat']],
-  top: [['hoodie', 'Hoodie'], ['tee', 'T-shirt'], ['tank', 'Tank top'], ['jacket', 'Jacket']],
-  bottom: [['pants', 'Trousers'], ['shorts', 'Shorts'], ['skirt', 'Skirt']],
+  top: [['hoodie', 'Hoodie'], ['tee', 'T-shirt'], ['tank', 'Tank top'], ['jacket', 'Jacket'], ['sweater', 'Stripy sweater'], ['polo', 'Polo shirt'], ['dress', 'Dress']],
+  bottom: [['pants', 'Trousers'], ['shorts', 'Shorts'], ['skirt', 'Skirt'], ['leggings', 'Leggings'], ['longskirt', 'Long skirt']],
   extra: [['none', 'None'], ['backpack', 'Backpack'], ['glasses', 'Glasses'], ['both', 'Both']],
 };
 const DEFAULT_PLAYER = { skin: '#f3c9a4', hair: 'pony', hairColor: '#8a5530', hat: 'cap', hatColor: '#29b6c9', top: 'hoodie', topColor: '#ff4f9a', bottom: 'pants', bottomColor: '#3f6bff', shoeColor: '#ffffff', extra: 'backpack', costume: 'none', hold: 'none', hairAcc: 'none', face: 'none', head: 'none', neck: 'none' };
@@ -473,23 +476,23 @@ const DEFAULT_FRIEND = { skin: '#a0663f', hair: 'puffs', hairColor: '#2b1b12', h
 // ---------- Shop (bought with coins) ----------
 // Costumes: [id, name, price, holiday]
 const COSTUMES = [
-  ['santa', '🎅 Santa', 120, 'Christmas'], ['elf', '🧝 Elf', 100, 'Christmas'], ['reindeer', '🦌 Reindeer', 80, 'Christmas'], ['snowman', '⛄ Snowman', 90, 'Christmas'],
-  ['witch', '🧙 Witch', 120, 'Halloween'], ['pumpkin', '🎃 Pumpkin', 100, 'Halloween'], ['ghost', '👻 Ghost', 90, 'Halloween'], ['bat', '🦇 Bat', 90, 'Halloween'],
-  ['sweetheart', '💗 Sweetheart', 80, "Valentine's Day"], ['cupid', '💘 Cupid', 100, "Valentine's Day"], ['lovebug', '🐞 Love bug', 80, "Valentine's Day"],
-  ['leprechaun', '🍀 Leprechaun', 100, "St. Patrick's Day"], ['shamrock', '☘️ Shamrock', 80, "St. Patrick's Day"],
-  ['bunnysuit', '🐰 Bunny', 90, 'Easter'], ['chick', '🐣 Chick', 90, 'Easter'], ['springtime', '🌷 Spring', 70, 'Easter'],
-  ['stars', '🇺🇸 Stars & stripes', 100, '4th of July'], ['liberty', '🗽 Liberty', 120, '4th of July'], ['firework', '🎆 Firework', 90, '4th of July'],
-  ['partyoutfit', '🎉 Party outfit', 80, 'Birthday'], ['cake', '🎂 Cake', 120, 'Birthday'], ['present', '🎁 Present', 100, 'Birthday'],
-  ['swimsuit', '👙 Swimsuit', 60, 'Bathing suits'], ['trunks', '🩳 Swim trunks', 60, 'Bathing suits'], ['beach', '🏖️ Beach day', 70, 'Bathing suits'],
-  ['hero', '🦸 Superhero', 150, 'Dress up'], ['astro', '🚀 Astronaut', 200, 'Dress up'],
+  ['santa', '🎅 Santa', 240, 'Christmas'], ['elf', '🧝 Elf', 200, 'Christmas'], ['reindeer', '🦌 Reindeer', 160, 'Christmas'], ['snowman', '⛄ Snowman', 180, 'Christmas'],
+  ['witch', '🧙 Witch', 240, 'Halloween'], ['pumpkin', '🎃 Pumpkin', 200, 'Halloween'], ['ghost', '👻 Ghost', 180, 'Halloween'], ['bat', '🦇 Bat', 180, 'Halloween'],
+  ['sweetheart', '💗 Sweetheart', 160, "Valentine's Day"], ['cupid', '💘 Cupid', 200, "Valentine's Day"], ['lovebug', '🐞 Love bug', 160, "Valentine's Day"],
+  ['leprechaun', '🍀 Leprechaun', 200, "St. Patrick's Day"], ['shamrock', '☘️ Shamrock', 160, "St. Patrick's Day"],
+  ['bunnysuit', '🐰 Bunny', 180, 'Easter'], ['chick', '🐣 Chick', 180, 'Easter'], ['springtime', '🌷 Spring', 140, 'Easter'],
+  ['stars', '🇺🇸 Stars & stripes', 200, '4th of July'], ['liberty', '🗽 Liberty', 240, '4th of July'], ['firework', '🎆 Firework', 180, '4th of July'],
+  ['partyoutfit', '🎉 Party outfit', 160, 'Birthday'], ['cake', '🎂 Cake', 240, 'Birthday'], ['present', '🎁 Present', 200, 'Birthday'],
+  ['swimsuit', '👙 Swimsuit', 120, 'Bathing suits'], ['trunks', '🩳 Swim trunks', 120, 'Bathing suits'], ['beach', '🏖️ Beach day', 140, 'Bathing suits'],
+  ['hero', '🦸 Superhero', 300, 'Dress up'], ['astro', '🚀 Astronaut', 400, 'Dress up'],
 ];
 // Accessories in slots, so you can wear one of each: [id, name, price]
 const ACC_SLOTS = {
-  hold: [['phone', '📱 Phone', 40], ['icecream', '🍦 Ice cream', 30], ['teddy', '🧸 Teddy', 45], ['wand', '🪄 Magic wand', 50], ['lollipop', '🍭 Lollipop', 20], ['balloon', '🎈 Balloon', 30], ['bouquet', '💐 Flowers', 35], ['donut', '🍩 Donut', 20]],
-  hairAcc: [['bow', '🎀 Big bow', 25], ['clips', '⭐ Star clips', 20], ['flowercrown', '🌸 Flower crown', 50], ['headband', 'Headband', 20], ['butterflies', '🦋 Butterfly clips', 35], ['scrunchie', 'Scrunchie', 15]],
-  face: [['sunglasses', '😎 Sunglasses', 30], ['heartglasses', '😍 Heart glasses', 35], ['studs', '✨ Sparkly earrings', 25], ['hoops', 'Hoop earrings', 25], ['facepaint', '❤️ Face paint', 20], ['glitter', '🌟 Star stickers', 20], ['freckles', 'Freckles', 15], ['nosegem', '💎 Nose gem sticker', 20]],
-  head: [['catears', '🐱 Cat ears', 40], ['bunny', '🐰 Bunny ears', 40], ['unicorn', '🦄 Unicorn horn', 60], ['tiara', '👑 Tiara', 60], ['halo', '😇 Halo', 70], ['horns', '😈 Little horns', 50], ['antennae', '🐝 Antennae', 35]],
-  neck: [['bowtie', 'Bow tie', 25], ['scarf', '🧣 Scarf', 30], ['necklace', '📿 Necklace', 30], ['lei', '🌺 Flower lei', 35], ['cape', 'Cape', 60], ['wings', '🧚 Fairy wings', 80]],
+  hold: [['phone', '📱 Phone', 80], ['icecream', '🍦 Ice cream', 60], ['teddy', '🧸 Teddy', 90], ['wand', '🪄 Magic wand', 100], ['lollipop', '🍭 Lollipop', 40], ['balloon', '🎈 Balloon', 60], ['bouquet', '💐 Flowers', 70], ['donut', '🍩 Donut', 40]],
+  hairAcc: [['bow', '🎀 Big bow', 50], ['clips', '⭐ Star clips', 40], ['flowercrown', '🌸 Flower crown', 100], ['headband', 'Headband', 40], ['butterflies', '🦋 Butterfly clips', 70], ['scrunchie', 'Scrunchie', 30]],
+  face: [['sunglasses', '😎 Sunglasses', 60], ['heartglasses', '😍 Heart glasses', 70], ['studs', '✨ Sparkly earrings', 50], ['hoops', 'Hoop earrings', 50], ['facepaint', '❤️ Face paint', 40], ['glitter', '🌟 Star stickers', 40], ['freckles', 'Freckles', 30], ['nosegem', '💎 Nose gem sticker', 40]],
+  head: [['catears', '🐱 Cat ears', 80], ['bunny', '🐰 Bunny ears', 80], ['unicorn', '🦄 Unicorn horn', 120], ['tiara', '👑 Tiara', 120], ['halo', '😇 Halo', 140], ['horns', '😈 Little horns', 100], ['antennae', '🐝 Antennae', 70]],
+  neck: [['bowtie', 'Bow tie', 50], ['scarf', '🧣 Scarf', 60], ['necklace', '📿 Necklace', 60], ['lei', '🌺 Flower lei', 70], ['cape', 'Cape', 120], ['wings', '🧚 Fairy wings', 160]],
 };
 const SLOT_KEYS = Object.keys(ACC_SLOTS);
 const PRICE = {}; for (const c of COSTUMES) PRICE[c[0]] = c[2]; for (const k of SLOT_KEYS) for (const a of ACC_SLOTS[k]) PRICE[a[0]] = a[2];
@@ -539,6 +542,9 @@ function loadLook(key, def) {
   for (const k of SLOT_KEYS) if (!L[k]) L[k] = 'none';
   return L;
 }
+// Fresh start for new prices: places locked again, coins back to 50, shop items and diner foods un-bought
+const RESET_NOW = store('fmf_reset') !== '2';
+if (RESET_NOW) { for (const k of ['fmf_coins', 'fmf_places', 'fmf_owned', 'fmf_area']) { try { localStorage.removeItem(k); } catch (e) {} } store('fmf_reset', '2'); }
 let PLAYER_LOOK = loadLook('fmf_look_me', DEFAULT_PLAYER);
 let FRIEND_LOOK = loadLook('fmf_look_friend', DEFAULT_FRIEND);
 const PEOPLE = {
@@ -682,6 +688,10 @@ const COIN_SVG = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="t
 let coins = (() => { const v = store('fmf_coins'); return v === null ? 50 : (parseInt(v, 10) || 0); })();
 let earned = parseInt(store('fmf_earned') || '0', 10) || 0;
 let OWNED = new Set((() => { try { return JSON.parse(store('fmf_owned') || '[]'); } catch (e) { return []; } })());
+if (RESET_NOW) {
+  for (const L of [PLAYER_LOOK, FRIEND_LOOK]) { if (L.costume !== 'none') L.costume = 'none'; for (const k of SLOT_KEYS) L[k] = 'none'; }
+  store('fmf_look_me', JSON.stringify(PLAYER_LOOK)); store('fmf_look_friend', JSON.stringify(FRIEND_LOOK));
+}
 function updateWallet() { for (const el of document.querySelectorAll('.walletN')) el.textContent = coins; }
 function bankCoins() {
   if (!S) return;
@@ -1004,7 +1014,7 @@ function buildRide() {
   });
 }
 // Places: the park is free, the others are unlocked with coins
-const PLACE_PRICE = { park: 0, pool: 150, drive: 100, party: 150, castle: 150 };
+const PLACE_PRICE = { park: 0, pool: 500, drive: 600, party: 350, castle: 2000 };
 let OPEN_PLACES = new Set((() => { try { return JSON.parse(store('fmf_places') || '["park"]'); } catch (e) { return ['park']; } })());
 OPEN_PLACES.add('park');
 const isOpen = id => OPEN_PLACES.has(id);
@@ -1302,7 +1312,7 @@ function bossTick(dt) {
 }
 function startGust(B) {
   const p = S.p;
-  B.phase = 'gust'; B.t = 0; B.warn = 1.8; B.blown = false; B.gustN = B.hp <= B.maxHp / 2 ? 2 : 1;
+  B.phase = 'gust'; B.t = 0; B.warn = 1.8; B.blown = false; B.gustN = B.hp <= B.maxHp / 3 ? 3 : B.hp <= B.maxHp * 2 / 3 ? 2 : 1;
   B.safe = pick([-1, 0, 1].filter(l => l !== p.lane)); ROAR();
   popup('She is flapping her wings!', W / 2, H * 0.32, '#ff3b3b');
 }
@@ -1501,7 +1511,7 @@ function drawFlyUi() {
 }
 
 // ---------- Dragon Dimension: through the portal, then the Mother of All Dragons ----------
-const MOTHER_HP = 30, DIM_LEN = 700;
+const MOTHER_HP = 36, DIM_LEN = 700;
 const DRAGON_VOID = { b: '#5d3a8c', d: '#432a68', w: '#3a2059', wd: '#1a0d2e', s: '#7a58a8', belly: '#c9a6ff', eye: '#ffe14d', horn: '#e2d9f0' };
 const DRAGON_LOW = { b: '#8a2f6e', d: '#66204f', w: '#4a1f5e', wd: '#200a2e', s: '#a85690', belly: '#ffb0dc', eye: '#ffe14d', horn: '#e2d9f0' };
 const DRAGON_MOTHER = { b: '#3e2760', d: '#2a1844', w: '#9a1f7a', wd: '#4d0f3e', s: '#5e4488', belly: '#d9b8ff', eye: '#ff4fd8', horn: '#f0eaff' };
@@ -1518,7 +1528,7 @@ function startDim() {
   popup('The Dragon Dimension!', W / 2, H * 0.28, '#c77dff'); popup('All 3 hearts are back!', W / 2, H * 0.34, '#ff4f6d'); popup('Find the Mother of All Dragons!', W / 2, H * 0.4, '#ff4f9a');
 }
 function dimCoins(lane, z) {
-  if (S.lives < maxLives() && Math.random() < 0.15) { S.objs.push({ type: 'heartUp', lane, lx: lane, z, y: 0.6, vz: 0, done: false, seed: 0 }); return; }
+  if (S.lives < maxLives() && Math.random() < 0.08) { S.objs.push({ type: 'heartUp', lane, lx: lane, z, y: 0.6, vz: 0, done: false, seed: 0 }); return; }
   if (Math.random() > 0.35) return;
   for (let i = 0; i < 3; i++) S.objs.push({ type: 'star', lane, lx: lane, z: z - 2 + i * 2, y: 0.6, vz: 0, done: false, seed: i });
 }
@@ -1526,7 +1536,7 @@ function spawnDimRow() {
   const k = clamp((S.dist - S.dim.start) / DIM_LEN, 0, 1), L = shuffled(), z = SPAWN_Z, sp = S.speed;
   const add = (type, lane, ex = {}) => S.objs.push(Object.assign({ type, lane, lx: lane, z, y: 0, vz: 0, done: false, seed: Math.random() * 10 }, ex));
   const low = l => add('vlow', l, { y: 1.6, vz: sp * 0.3 }), drag = l => add('vdragon', l, { y: 1.3, shot: false, fireT: 0 });
-  const pat = pick(k < 0.2 ? ['spike', 'rock', 'low', 'spike'] : ['spike2', 'rockSpike', 'dragon', 'lowWall', 'lowSpike', 'dragon', 'rock2', 'dragonRock', 'spike2']);
+  const pat = pick(k < 0.1 ? ['spike', 'rock', 'low', 'dragon'] : ['spike2', 'rockSpike', 'dragon', 'lowWall', 'lowSpike', 'dragon2', 'rock2', 'dragonRock', 'dragonLow', 'lowRock', 'dragon']);
   switch (pat) {
     case 'spike': add('vspike', L[0]); dimCoins(L[1], z); break;
     case 'spike2': add('vspike', L[0]); add('vspike', L[1]); dimCoins(L[2], z); break;
@@ -1538,8 +1548,11 @@ function spawnDimRow() {
     case 'lowSpike': low(L[0]); add('vspike', L[1]); dimCoins(L[2], z); break;
     case 'dragon': drag(L[0]); dimCoins(L[1], z); break;
     case 'dragonRock': drag(L[0]); add('vrock', L[1]); break;
+    case 'dragon2': drag(L[0]); drag(L[1]); break;
+    case 'dragonLow': drag(L[0]); low(L[1]); low(L[2]); break;
+    case 'lowRock': low(L[0]); add('vrock', L[1]); add('vspike', L[2]); break;
   }
-  S.lastRow = S.dist; S.nextRow = S.dist + lerp(27, 18, k) * rand(0.9, 1.15) + (pat.indexOf('dragon') === 0 ? 8 : 0);
+  S.lastRow = S.dist; S.nextRow = S.dist + lerp(23, 15, k) * rand(0.9, 1.1) + (pat.indexOf('dragon') === 0 ? 6 : 0);
 }
 function dimHits(p) {
   for (const o of S.objs) {
@@ -1699,7 +1712,7 @@ function update(dt) {
     let target = (11 + 11 * d) * (level.speedMul || 1);
     if (S.boss) target = S.boss.phase === 'glide' ? 9.5 : 0;
     if (S.fly) target = 15 + 4 * clamp((S.dist - S.fly.start) / FLY_LEN, 0, 1);
-    if (S.dim) target = 14 + 5 * clamp((S.dist - S.dim.start) / DIM_LEN, 0, 1);
+    if (S.dim) target = 17 + 6 * clamp((S.dist - S.dim.start) / DIM_LEN, 0, 1);
     if (S.boss && S.boss.phase === 'escape' && S.boss.grab) target = 16;
     if (S.slow > 0) { S.slow -= dt; target *= 0.6; }
     S.speed = lerp(S.speed, target, clamp(dt * 2, 0, 1));
@@ -1777,7 +1790,7 @@ function update(dt) {
     if (o.type === 'fireball' && o.parried && !o.done && S.boss && o.z >= S.boss.z - 0.5) { o.done = true; bossHit(1, 'Blocked it back! -1', '#29b6c9'); }
     if (o.type === 'archer' && !o.shot && o.z < 32 && o.z > 4 && playing) { o.shot = true; TWANG(); const tl = S.p.lane; S.objs.push({ type: 'arrow', lane: tl, lx: o.lx, tl, z: o.z - 0.5, y: 1.15, vz: S.speed * 0.6, done: false, seed: 0, dir: Math.sign(o.lx) }); }
     if (o.type === 'arrow') o.lx = lerp(o.lx, o.tl, clamp(dt * 2.5, 0, 1));
-    if (o.type === 'vdragon') { if (o.fireT > 0) o.fireT -= dt; if (!o.shot && o.z < 34 && o.z > 8 && playing) { o.shot = true; o.fireT = 0.45; WHOOSH(); const tl = S.p.lane; S.objs.push({ type: 'vfire', lane: tl, lx: o.lx, tl, z: o.z - 1, y: 0.8, vz: S.speed * 0.6, done: false, seed: Math.random() * 6 }); } }
+    if (o.type === 'vdragon') { if (o.fireT > 0) o.fireT -= dt; if (!o.shot && o.z < 34 && o.z > 8 && playing) { o.shot = true; o.fireT = 0.45; WHOOSH(); const tl = S.p.lane; S.objs.push({ type: 'vfire', lane: tl, lx: o.lx, tl, z: o.z - 1, y: 0.8, vz: S.speed * 0.85, done: false, seed: Math.random() * 6 }); } }
     if (o.type === 'vfire') o.lx = lerp(o.lx, o.tl, clamp(dt * 2.5, 0, 1));
     if (o.type === 'bird') o.lx = Math.sin(S.t * 1.5 + o.ph) * 1.05;
     if (o.type === 'skydragon') { if (o.fireT > 0) o.fireT -= dt; if (!o.shot && o.z < 36 && playing) { o.shot = true; o.fireT = 0.45; WHOOSH(); S.objs.push({ type: 'skyfire', lane: o.lane, lx: o.lx, z: o.z - 1, y: FLY_Y, vz: S.speed * 0.8, done: false, seed: Math.random() * 6 }); } }
@@ -2064,8 +2077,8 @@ function drawPerson(c, L, v) {
 function drawArm(c, L, s, [hx, hy]) {
   const sx = s * 0.22, sy = -0.9;
   limb(c, sx, sy, hx, hy, L.skin, 0.13);
-  if (L.top === 'tee') limb(c, sx, sy, lerp(sx, hx, 0.42), lerp(sy, hy, 0.42), L.topColor, 0.18);
-  else if (L.top === 'hoodie' || L.top === 'jacket') {
+  if (L.top === 'tee' || L.top === 'polo' || L.top === 'dress') limb(c, sx, sy, lerp(sx, hx, 0.42), lerp(sy, hy, 0.42), L.topColor, 0.18);
+  else if (L.top === 'hoodie' || L.top === 'jacket' || L.top === 'sweater') {
     limb(c, sx, sy, lerp(sx, hx, 0.82), lerp(sy, hy, 0.82), L.topColor, 0.16);
   }
 }
@@ -2101,6 +2114,9 @@ function drawTorso(c, L, front) {
   } else if (L.top === 'hoodie') {
     ellipse(c, 0, -0.97, 0.2, 0.1, shade(col, -0.15), OUT, 0.03);
   }
+  if (L.top === 'sweater') { for (const y of [-0.86, -0.72]) rrect(c, -0.25, y, 0.5, 0.06, 0.02, shade(col, 0.45), null); rrect(c, -0.25, -0.58, 0.5, 0.07, 0.03, shade(col, -0.2), null); }
+  if (L.top === 'polo' && front) { for (const s of [-1, 1]) { c.beginPath(); c.moveTo(0, -1.0); c.lineTo(s * 0.13, -1.01); c.lineTo(s * 0.1, -0.9); c.closePath(); fillStroke(c, shade(col, 0.4), 0.025); } circle(c, 0, -0.88, 0.02, OUT, null); circle(c, 0, -0.8, 0.02, OUT, null); }
+  if (L.top === 'dress') { c.beginPath(); c.moveTo(-0.25, -0.56); c.lineTo(0.25, -0.56); c.lineTo(0.38, -0.2); c.lineTo(-0.38, -0.2); c.closePath(); fillStroke(c, col); rrect(c, -0.26, -0.6, 0.52, 0.06, 0.03, shade(col, 0.45), null); }
   if (L.costume === 'santa') {
     if (front) rrect(c, -0.045, -1.0, 0.09, 0.42, 0.03, '#ffffff', null);
     rrect(c, -0.28, -0.56, 0.56, 0.08, 0.04, '#ffffff', OUT, 0.03);
@@ -2303,7 +2319,7 @@ function drawPattern(c, L) {
   c.restore();
 }
 function drawLegs(c, L, v, l1, l2, up, ph) {
-  const legCol = L.bottom === 'pants' ? L.bottomColor : L.skin;
+  const legCol = L.bottom === 'pants' || L.bottom === 'leggings' ? L.bottomColor : L.skin;
   const hipY = -0.45 - up;
   const feet = [];
   for (const s of [-1, 1]) {
@@ -2322,7 +2338,11 @@ function drawLegs(c, L, v, l1, l2, up, ph) {
   if (L.bottom === 'skirt') {
     c.beginPath(); c.moveTo(-0.24, hipY - 0.15); c.lineTo(0.24, hipY - 0.15); c.lineTo(0.34, hipY + 0.14); c.lineTo(-0.34, hipY + 0.14); c.closePath();
     fillStroke(c, L.bottomColor);
-  } else if (L.bottom === 'brief') rrect(c, -0.2, hipY - 0.12, 0.4, 0.14, 0.06, L.bottomColor, OUT, LW);
+  } else if (L.bottom === 'longskirt') {
+    c.beginPath(); c.moveTo(-0.24, hipY - 0.15); c.lineTo(0.24, hipY - 0.15); c.lineTo(0.36, hipY + 0.3); c.lineTo(-0.36, hipY + 0.3); c.closePath();
+    fillStroke(c, L.bottomColor); line(c, -0.3, hipY + 0.22, 0.3, hipY + 0.22, shade(L.bottomColor, 0.35), 0.03);
+  } else if (L.bottom === 'leggings') rrect(c, -0.22, hipY - 0.15, 0.44, 0.14, 0.06, shade(L.bottomColor, -0.15), OUT, LW);
+  else if (L.bottom === 'brief') rrect(c, -0.2, hipY - 0.12, 0.4, 0.14, 0.06, L.bottomColor, OUT, LW);
   else rrect(c, -0.24, hipY - 0.15, 0.48, 0.2, 0.07, L.bottomColor, OUT, LW);
 }
 function starPath(c) {
@@ -2399,12 +2419,26 @@ function hairBehind(c, L, ph) {
   if (L.hair === 'pony') ellipse(c, 0.32, hy + 0.12, 0.09, 0.2, col, OUT, LW, -0.35);
   if (L.hair === 'puffs') { circle(c, -0.31, hy - 0.2, 0.16, col, OUT, LW); circle(c, 0.31, hy - 0.2, 0.16, col, OUT, LW); }
   if (L.hair === 'buns') { circle(c, -0.21, hy - 0.3, 0.13, col, OUT, LW); circle(c, 0.21, hy - 0.3, 0.13, col, OUT, LW); }
+  hairExtraBehind(c, L, ph);
+}
+function hairExtraBehind(c, L, ph) {
+  const hy = HY, col = L.hairColor;
+  if (L.hair === 'afro') { circle(c, 0, hy - 0.06, HR + 0.17, col, OUT, LW); for (let i = 0; i < 12; i++) { const a = i / 12 * Math.PI * 2; circle(c, Math.cos(a) * (HR + 0.13), hy - 0.06 + Math.sin(a) * (HR + 0.13), 0.08, col, null); } }
+  if (L.hair === 'pigtails') for (const s of [-1, 1]) { ellipse(c, s * 0.42, hy + 0.12, 0.1, 0.22, col, OUT, LW, s * 0.35); circle(c, s * 0.34, hy - 0.04, 0.05, L.hatColor, OUT, 0.025); }
+  if (L.hair === 'bob') rrect(c, -0.38, hy - 0.15, 0.76, 0.42, 0.18, col, OUT, LW);
+  if (L.hair === 'topbun') circle(c, 0, hy - 0.38, 0.14, col, OUT, LW);
+  if (L.hair === 'wavy') { rrect(c, -0.38, hy - 0.15, 0.76, 0.6, 0.2, col, OUT, LW); for (let i = 0; i < 5; i++) circle(c, -0.3 + i * 0.15, hy + 0.45, 0.08, col, OUT, 0.03); }
+}
+function mohawk(c, L) {
+  for (let i = -2; i <= 2; i++) { const a = -Math.PI / 2 + i * 0.22; c.beginPath(); c.moveTo(Math.cos(a - 0.1) * HR, HY + Math.sin(a - 0.1) * HR); c.lineTo(Math.cos(a) * (HR + 0.22 - Math.abs(i) * 0.03), HY + Math.sin(a) * (HR + 0.22 - Math.abs(i) * 0.03)); c.lineTo(Math.cos(a + 0.1) * HR, HY + Math.sin(a + 0.1) * HR); c.closePath(); fillStroke(c, L.hairColor, 0.03); }
 }
 function hairFront(c, L) {
+  if (L.hair === 'mohawk') mohawk(c, L);
   if (L.hair === 'spiky') spikes(c, L);
   hairCap(c, L);
   if (L.hair === 'curly') curls(c, L);
-  if (L.hair === 'long') { rrect(c, -0.36, HY - 0.02, 0.1, 0.36, 0.05, L.hairColor, OUT, 0.03); rrect(c, 0.26, HY - 0.02, 0.1, 0.36, 0.05, L.hairColor, OUT, 0.03); }
+  if (L.hair === 'long' || L.hair === 'wavy') { rrect(c, -0.36, HY - 0.02, 0.1, 0.36, 0.05, L.hairColor, OUT, 0.03); rrect(c, 0.26, HY - 0.02, 0.1, 0.36, 0.05, L.hairColor, OUT, 0.03); }
+  if (L.hair === 'bob') { rrect(c, -0.37, HY - 0.04, 0.11, 0.26, 0.05, L.hairColor, OUT, 0.03); rrect(c, 0.26, HY - 0.04, 0.11, 0.26, 0.05, L.hairColor, OUT, 0.03); }
   if (L.hair === 'pony' || L.hair === 'puffs' || L.hair === 'buns') circle(c, 0.2, HY - 0.2, 0.045, L.hatColor, OUT, 0.025);
 }
 function hairBack(c, L, ph) {
@@ -2412,6 +2446,7 @@ function hairBack(c, L, ph) {
   if (L.hair === 'puffs') { circle(c, -0.31, hy - 0.2, 0.16, col, OUT, LW); circle(c, 0.31, hy - 0.2, 0.16, col, OUT, LW); }
   if (L.hair === 'buns') { circle(c, -0.21, hy - 0.3, 0.13, col, OUT, LW); circle(c, 0.21, hy - 0.3, 0.13, col, OUT, LW); }
   if (L.hair === 'spiky') spikes(c, L);
+  if (L.hair === 'afro') hairExtraBehind(c, L, ph);
   circle(c, -0.31, hy + 0.04, 0.07, L.skin, OUT, LW); circle(c, 0.31, hy + 0.04, 0.07, L.skin, OUT, LW);
   circle(c, 0, hy, HR, L.skin, OUT, LW);
   c.beginPath();
@@ -2422,6 +2457,8 @@ function hairBack(c, L, ph) {
   if (L.hair === 'curly') curls(c, L);
   if (L.hair === 'long') rrect(c, -0.34, hy - 0.05, 0.68, 0.6, 0.2, col, OUT, LW);
   if (L.hair === 'braids') { braid(c, L, -0.17, hy + 0.25, -0.72); braid(c, L, 0.17, hy + 0.25, -0.72); }
+  if (L.hair === 'pigtails' || L.hair === 'bob' || L.hair === 'topbun' || L.hair === 'wavy') hairExtraBehind(c, L, ph);
+  if (L.hair === 'mohawk') mohawk(c, L);
   if (L.hair === 'pony') {
     const sx = Math.sin(ph) * 0.08;
     ellipse(c, sx, hy + 0.36, 0.11, 0.22, col, OUT, LW, sx * 1.5);
@@ -3933,14 +3970,15 @@ function drawPreviews() {
 // ---------- Mini game: The Friendly Diner (from Lily's drawing) ----------
 // Foods fly up. Slice your food to eat it, slice your friend's food to feed them. Don't slice the others!
 const DINER_FOODS = {
-  breakfast: [['waffle', 'Waffles with blueberries'], ['pancakes', 'Pancakes with whipped cream'], ['toast', 'Toast with strawberry jam'], ['egg', 'Fried egg'], ['donut', 'Sprinkle donut'], ['muffin', 'Chocolate chip muffin']],
-  lunch: [['pizza', 'Pepperoni pizza'], ['sandwich', 'Ham and cheese sandwich'], ['taco', 'Taco'], ['apple', 'Apple'], ['cookie', 'Chocolate chip cookie'], ['hotdog', 'Hot dog with mustard']],
-  dinner: [['burger', 'Cheeseburger'], ['spaghetti', 'Spaghetti and meatballs'], ['drumstick', 'Chicken drumstick'], ['broccoli', 'Broccoli'], ['corn', 'Corn on the cob'], ['cupcake', 'Strawberry cupcake']],
+  breakfast: [['waffle', 'Waffles with blueberries'], ['pancakes', 'Pancakes with whipped cream'], ['toast', 'Toast with strawberry jam'], ['egg', 'Fried egg'], ['donut', 'Sprinkle donut'], ['muffin', 'Chocolate chip muffin'], ['cereal', 'Rainbow cereal', 80], ['smoothie', 'Strawberry smoothie', 100], ['croissant', 'Butter croissant', 120]],
+  lunch: [['pizza', 'Pepperoni pizza'], ['sandwich', 'Ham and cheese sandwich'], ['taco', 'Taco'], ['apple', 'Apple'], ['cookie', 'Chocolate chip cookie'], ['hotdog', 'Hot dog with mustard'], ['fries', 'French fries', 80], ['nuggets', 'Chicken nuggets', 100], ['icecone', 'Ice cream cone', 120]],
+  dinner: [['burger', 'Cheeseburger'], ['spaghetti', 'Spaghetti and meatballs'], ['drumstick', 'Chicken drumstick'], ['broccoli', 'Broccoli'], ['corn', 'Corn on the cob'], ['cupcake', 'Strawberry cupcake'], ['mac', 'Mac and cheese', 80], ['sushi', 'Sushi rolls', 100], ['cake', 'Chocolate cake', 120]],
 };
 const SLICE_TIME = 60, BONUS_SLICE_TIME = 15;
 const SLICE_STARS = [15, 30, 50], SLICE_COINS = [0, 5, 10, 20], SLICE_BONUS_NEED = 25, SLICE_BONUS_COINS = 40;
 function drawFood(c, id) {
   // food in unit size: about 1 wide, centred on 0,0
+  if (NEW_FOODS[id]) { NEW_FOODS[id](c); return; }
   switch (id) {
     case 'waffle':
       rrect(c, -0.44, -0.44, 0.88, 0.88, 0.14, '#e8a84a', OUT, 0.045);
@@ -4043,6 +4081,64 @@ function drawFood(c, id) {
       break;
   }
 }
+// foods you can buy for the diner (Lily's idea: more foods in the shop)
+const bowl = (c, col) => { c.beginPath(); c.moveTo(-0.46, -0.02); c.quadraticCurveTo(-0.42, 0.44, 0, 0.44); c.quadraticCurveTo(0.42, 0.44, 0.46, -0.02); c.closePath(); fillStroke(c, col, 0.045); };
+const NEW_FOODS = {
+  cereal(c) {
+    ellipse(c, 0, -0.02, 0.46, 0.13, '#f4f6ff', OUT, 0.04);
+    const cols = ['#ff5f5f', '#ffcf33', '#7bd389', '#29b6c9', '#8a4dff', '#ff9f1c'];
+    [[-0.26, -0.06], [-0.1, -0.1], [0.06, -0.05], [0.22, -0.1], [-0.02, -0.16], [0.3, -0.02], [-0.32, 0.0]].forEach(([x, y], i) => { circle(c, x, y, 0.07, cols[i % 6], OUT, 0.025); circle(c, x, y, 0.025, '#f4f6ff', null); });
+    bowl(c, '#29b6c9');
+    line(c, 0.2, -0.05, 0.52, -0.42, '#c9cde0', 0.06); ellipse(c, 0.12, -0.02, 0.09, 0.05, '#c9cde0', OUT, 0.025, -0.6);
+  },
+  smoothie(c) {
+    line(c, 0.08, -0.3, 0.2, -0.56, '#ff4f9a', 0.07);
+    c.beginPath(); c.moveTo(-0.3, -0.3); c.lineTo(0.3, -0.3); c.lineTo(0.22, 0.44); c.lineTo(-0.22, 0.44); c.closePath(); fillStroke(c, '#ff8fb8', 0.045);
+    rrect(c, -0.34, -0.36, 0.68, 0.1, 0.05, '#ffd6e6', OUT, 0.03);
+    c.beginPath(); c.moveTo(-0.32, -0.4); c.quadraticCurveTo(-0.38, -0.62, -0.2, -0.6); c.quadraticCurveTo(-0.12, -0.5, -0.2, -0.36); c.closePath(); fillStroke(c, '#e23b3b', 0.03);
+    for (const [x, y] of [[-0.14, 0.0], [0.08, 0.12], [-0.04, 0.26]]) circle(c, x, y, 0.025, '#ffe6ef', null);
+  },
+  croissant(c) {
+    for (const [x, y, r, a] of [[-0.36, 0.08, 0.14, 0.5], [0.36, 0.08, 0.14, -0.5], [-0.2, -0.04, 0.2, 0.2], [0.2, -0.04, 0.2, -0.2], [0, -0.1, 0.24, 0]]) ellipse(c, x, y, r * 1.1, r * 0.85, '#e9a64a', OUT, 0.04, a);
+    for (const x of [-0.2, 0, 0.2]) line(c, x, -0.24, x * 1.1, 0.06, '#b9772a', 0.03);
+  },
+  fries(c) {
+    for (let i = 0; i < 6; i++) rrect(c, -0.27 + i * 0.1, -0.5 + (i % 2) * 0.08, 0.08, 0.5, 0.03, '#ffd84a', OUT, 0.025);
+    c.beginPath(); c.moveTo(-0.36, -0.1); c.lineTo(0.36, -0.1); c.lineTo(0.28, 0.44); c.lineTo(-0.28, 0.44); c.closePath(); fillStroke(c, '#e23b3b', 0.045);
+    c.save(); c.translate(0, 0.16); c.scale(0.5, 0.5); starPath(c); c.fillStyle = '#ffcf33'; c.fill(); c.restore();
+  },
+  nuggets(c) {
+    for (const [x, y, a] of [[-0.24, 0.1, 0.3], [0.16, 0.16, -0.2], [-0.04, -0.12, 0.1], [0.28, -0.14, 0.5]]) {
+      c.save(); c.translate(x, y); c.rotate(a);
+      c.beginPath(); c.moveTo(-0.2, 0); c.quadraticCurveTo(-0.22, -0.16, -0.04, -0.15); c.quadraticCurveTo(0.2, -0.18, 0.2, 0.02); c.quadraticCurveTo(0.18, 0.15, 0, 0.13); c.quadraticCurveTo(-0.2, 0.15, -0.2, 0); c.closePath(); fillStroke(c, '#e6a540', 0.035);
+      circle(c, -0.06, -0.04, 0.02, '#b9772a', null); circle(c, 0.07, 0.03, 0.02, '#b9772a', null); c.restore();
+    }
+  },
+  icecone(c) {
+    c.beginPath(); c.moveTo(-0.24, -0.02); c.lineTo(0.24, -0.02); c.lineTo(0, 0.5); c.closePath(); fillStroke(c, '#e0a052', 0.045);
+    line(c, -0.12, 0.06, 0.08, 0.3, '#b9772a', 0.025); line(c, 0.12, 0.06, -0.08, 0.3, '#b9772a', 0.025);
+    circle(c, 0, -0.14, 0.23, '#ffb3cf', OUT, 0.04); circle(c, 0, -0.38, 0.18, '#a8e6c9', OUT, 0.04);
+    circle(c, 0.04, -0.58, 0.07, '#e23b3b', OUT, 0.025);
+    for (const [x, y, k] of [[-0.1, -0.1, 0], [0.1, -0.2, 1], [-0.06, -0.36, 2]]) rrect(c, x, y, 0.06, 0.02, 0.01, ['#ffcf33', '#29b6c9', '#8a4dff'][k], null);
+  },
+  mac(c) {
+    ellipse(c, 0, -0.02, 0.46, 0.14, '#ffcf33', OUT, 0.04);
+    for (const [x, y, a] of [[-0.24, -0.05, 0.3], [-0.06, -0.1, 1.2], [0.14, -0.04, 2], [0.3, -0.08, 0.6], [0.02, 0.02, 2.8], [-0.2, 0.03, 1.8]]) { c.beginPath(); c.arc(x, y, 0.06, a, a + 3); c.strokeStyle = '#e09a10'; c.lineWidth = 0.035; c.stroke(); }
+    bowl(c, '#ff5f5f');
+  },
+  sushi(c) {
+    for (const [x, y] of [[-0.24, 0.06], [0.24, 0.06], [0, -0.2]]) {
+      circle(c, x, y, 0.2, '#2f4a3a', OUT, 0.04); circle(c, x, y, 0.15, '#ffffff', null); circle(c, x, y, 0.07, '#ff8a5c', null); circle(c, x + 0.03, y - 0.03, 0.03, '#7bd389', null);
+    }
+  },
+  cake(c) {
+    c.beginPath(); c.moveTo(-0.42, -0.1); c.lineTo(0.42, -0.1); c.lineTo(0.42, 0.36); c.lineTo(-0.42, 0.36); c.closePath(); fillStroke(c, '#6e3f26', 0.045);
+    rrect(c, -0.42, 0.06, 0.84, 0.07, 0.02, '#ffe6c4', null);
+    c.beginPath(); c.moveTo(-0.44, -0.12); c.lineTo(0.44, -0.12); for (let i = 4; i >= -4; i--) c.lineTo(i * 0.11, i % 2 ? -0.02 : 0.04); c.closePath(); fillStroke(c, '#4a2716', 0.035);
+    circle(c, 0, -0.24, 0.09, '#e23b3b', OUT, 0.03); line(c, 0.02, -0.32, 0.08, -0.42, '#2fae62', 0.03);
+  },
+};
+
 const D = { step: 'meal', meal: null, mine: null, friend: null, g: null };
 function cafeHud() {
   const g = D.g; if (!g) return;
@@ -4059,12 +4155,21 @@ function pickStep(step) {
   const fn = friendName() === 'your friend' ? 'your friend' : friendName();
   $('pickText').textContent = step === 'mine' ? 'What do you want to eat? Pick your food!' : `What does ${fn} want to eat? Pick their food!`;
   const box = $('foodPick'); box.innerHTML = '';
-  for (const [id, name] of DINER_FOODS[D.meal]) {
-    const b = document.createElement('button'); b.className = 'fooditem' + (step === 'friend' && id === D.mine ? ' taken' : '');
+  for (const [id, name, price] of DINER_FOODS[D.meal]) {
+    const locked = price && !OWNED.has('food_' + id);
+    const b = document.createElement('button'); b.className = 'fooditem' + (step === 'friend' && id === D.mine ? ' taken' : '') + (locked ? ' locked' : '');
     const cv = document.createElement('canvas'); const px = Math.round(64 * DPR); cv.width = px; cv.height = px;
     const c = cv.getContext('2d'); c.translate(px / 2, px / 2); c.scale(px * 0.78, px * 0.78); c.lineCap = 'round'; c.lineJoin = 'round'; drawFood(c, id);
     b.append(cv, name);
-    b.onclick = () => { SFX.move(); if (step === 'mine') { D.mine = id; pickStep('friend'); } else { D.friend = id; startSlice(false); } };
+    if (locked) { const t = document.createElement('span'); t.className = 'foodprice'; t.textContent = '🔒 ' + price + ' coins'; b.append(t); }
+    b.onclick = () => {
+      if (locked) {
+        if (coins < price) { SFX.hurt(); $('pickText').textContent = `${name} costs ${price} coins. You have ${coins}. Keep playing to earn more!`; return; }
+        if (D.pending !== id) { D.pending = id; SFX.move(); $('pickText').textContent = `${name} costs ${price} coins. Tap it again to buy it!`; return; }
+        coins -= price; OWNED.add('food_' + id); D.pending = null; store('fmf_coins', String(coins)); store('fmf_owned', JSON.stringify([...OWNED])); updateWallet(); SFX.win();
+        pickStep(step); $('pickText').textContent = `You bought ${name}! Now pick it.`; return;
+      }
+      SFX.move(); if (step === 'mine') { D.mine = id; pickStep('friend'); } else { D.friend = id; startSlice(false); } };
     box.appendChild(b);
   }
 }
@@ -4402,7 +4507,7 @@ function frame(now) {
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
-window.__fmf = { startBoss: r => startBoss(r), startDim: () => startDim(), bossHit: (n) => bossHit(n, "test", "#000"), get S() { return S; }, get D() { return D; }, get MUS() { return MUS; }, get audio() { return audio; }, toMenu: () => toMenu() };
+window.__fmf = { t: { drawPerson, DEFAULT_PLAYER, openCafe, pickStep }, startBoss: r => startBoss(r), startDim: () => startDim(), bossHit: (n) => bossHit(n, "test", "#000"), get S() { return S; }, get D() { return D; }, get MUS() { return MUS; }, get audio() { return audio; }, toMenu: () => toMenu() };
 })();
 </script>
 
